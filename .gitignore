@@ -3,3 +3,4 @@
 .micropico
 *.code-workspace
 secrets.py
+testing/
