@@ -134,7 +134,7 @@ class Client:
             return None
         return self.address
 
-    def get(self, category ,parameter, forecast_days=1):
+    def get_forecast(self, category ,parameter, forecast_days=1):
         if not self.wifi_connected:
             raise ConnectionError("Wi-Fi is not connected.")
         
@@ -162,7 +162,7 @@ class Client:
         else:
             raise ValueError("Unsupported API type. Currently only 'ipgeolocation' is supported.")
         
-    def get_astro(self, category, parameter):
+    def get_astronomy(self, category, parameter):
         if not self.wifi_connected:
             raise ConnectionError("Wi-Fi is not connected.")
         

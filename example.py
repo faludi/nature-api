@@ -47,9 +47,10 @@ else:
 address_regular = "3 Sheridan Square, New York, NY"
 address_cold = "Nuuk, Greenland"
 address_hot = "Death Valley, California"
+address_parents = "Sun City West, Arizona"
 
 # Set the location for weather data (will be converted to latitude and longitude)
-client.set_location(address_hot)
+client.set_location(address_regular)
 print(f"Location set to: {client.get_address()}")
 
 try:
@@ -62,30 +63,30 @@ client.set_api_key("ipgeolocation", secrets.IPGEOLOCATION_API_KEY)
 
 # Fetch the current wind speed at the specified location
 try:
-    cloud_cover = client.get("current", "cloud_cover")
+    cloud_cover = client.get_forecast("current", "cloud_cover")
     print(f"Cloud cover at {client.get_address()} is: {cloud_cover}%")
 
-    moon_illumination = client.get_astro("astronomy", "moon_illumination_percentage")
+    moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage")
     print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
 
-    # wind_speed = client.get("current", "wind_speed_10m")
+    # wind_speed = client.get_forecast("current", "wind_speed_10m")
     # print(f"Wind speed at {client.get_address()} is: {wind_speed} km/h")
 
-    # temps = client.get("hourly", "temperature_2m")
+    # temps = client.get_forecast("hourly", "temperature_2m")
     # print(f"Hourly temperatures at {address_regular} are:", end=" ")
     # for temp in temps:
     #     print(f"{temp}°C", end=" ")
     # print(" ")  # New line after printing temperatures
 
-    # temps = client.get("current", "temperature_2m")
+    # temps = client.get_forecast("current", "temperature_2m")
     # print(f"Current temperatures at {address_regular} is: {temps} °C")
     # client.set_location(address_cold)
     # print(f"Location set to: {address_cold}")
-    # temps = client.get("current", "temperature_2m")
+    # temps = client.get_forecast("current", "temperature_2m")
     # print(f"Current temperatures at {address_cold} is: {temps} °C")
     # client.set_location(address_hot)
     # print(f"Location set to: {address_hot}")
-    # temps = client.get("current", "temperature_2m")
+    # temps = client.get_forecast("current", "temperature_2m")
     # print(f"Current temperatures at {address_hot} is: {temps} °C")
 except Exception as e:
     print(f"Error fetching weather data: {e}")
