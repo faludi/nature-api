@@ -5,6 +5,7 @@ import network
 import requests
 from Url_encode import url_encode
 import machine
+import ntptime
 
 class Client:
     def __init__(self, ssid, password, default_refresh=300, status_led_pin=None, debug_mode=False):
@@ -13,52 +14,89 @@ class Client:
         self.default_refresh = default_refresh
         self.status_led_pin = status_led_pin
         self.wifi_connected = False
+        self.address = None
         self.location = None
+        self.utc_offset = 0
         self.debug_mode = debug_mode
 
         if self.status_led_pin is not None:
             self.led = machine.Pin(self.status_led_pin, machine.Pin.OUT)
             self.led.off()
 
-    def connect_wifi(self):
-        if self.status_led_pin is not None:
-            self.led.on()  # Turn on LED while connecting
+    # def connect_wifi(self, max_retries=5):
 
+    #     if self.status_led_pin is not None:
+    #         self.led.on()  # Turn on LED while connecting
+
+    #     wlan = network.WLAN(network.STA_IF)
+    #     wlan.active(True)
+    #     wlan.connect(self.ssid, self.password)
+
+    #     while not wlan.isconnected():
+    #         time.sleep(1)
+
+    #     self.wifi_connected = True
+
+    #     if self.status_led_pin is not None:
+    #         self.led.off()  # Turn off LED after connecting
+
+    def connect_wifi(self, max_retries=10):
         wlan = network.WLAN(network.STA_IF)
         wlan.active(True)
+        # Connect to network
         wlan.connect(self.ssid, self.password)
-
-        while not wlan.isconnected():
+        max_retries = 10
+        while max_retries > 0:
+            if wlan.status() >= 3:
+                self.wifi_connected = True
+                break
+            max_retries -= 1
+            print('Waiting for Wi-Fi connection...')
             time.sleep(1)
+        # Check if connection is successful
+        if wlan.status() != 3:
+            print('Failed to establish a network connection')
+            return False
+        else:
+            print('Connection successful!')
+            network_info = wlan.ifconfig()
+            print('IP address:', network_info[0])
+            return True
 
-        self.wifi_connected = True
-
-        if self.status_led_pin is not None:
-            self.led.off()  # Turn off LED after connecting
-
-    # def set_location(self, address):
-    #     # Geocoding API to convert address to latitude and longitude
-    #     headers = {
-    #         "User-Agent": "rp2"  # Add a custom user agent
-    #     }
-    #     geocode_url = f"https://nominatim.openstreetmap.org/search?q={address}&format=json&limit=1"
-    #     print(f"Geocoding URL: {geocode_url}")  # Debugging line to check the URL
-    #     response = requests.get(geocode_url, headers=headers, timeout=10)
-    #     print(f"Geocoding response: {response.text}")  # Debugging line to check the response
-    #     response_code = response.status_code
-    #     print(f"Geocoding response code: {response_code}")  # Debugging line to check the response code
-    #     data = response.json()
-    #     print(f"Geocoding data: {data}")  # Debugging line to check the parsed JSON data
+    def sync_time(self, max_retries=5):
+        for _ in range(max_retries):
+            try:
+                print('Syncing time via NTP...')
+                ntptime.settime()
+                return True
+            except Exception as e:
+                print("Failed to sync time:", e)
+            return False
         
-    #     if data:
-    #         self.location = {
-    #             "latitude": data[0]["lat"],
-    #             "longitude": data[0]["lon"]
-    #         }
-    #     else:
-    #         raise ValueError("Unable to geocode the provided address.")
+    def set_timezone_from_location(self):
+        if not self.location:
+            raise ValueError("Location is not set.")
+        
+        try:
+            headers = {
+                "User-Agent": "rp2"  # Add a custom user agent
+            }
+            response = requests.get(f"https://timeapi.io/api/v1/time/current/coordinate?latitude={self.location['latitude']}&longitude={self.location['longitude']}")
+            if self.debug_mode:
+                print(response.content)
+                print('Response code: ', response.status_code)
+            timezone_data = response.json()
+                
+            if 'utc_offset_seconds' in timezone_data:
+                self.utc_offset = timezone_data['utc_offset_seconds']
+            else:
+                raise ValueError("UTC offset not found in timezone data.")
+        except Exception as e:
+            print('Error fetching timezone data:', e)
+            return False
         
     def set_location(self, address):
+        self.address = address
         url=url_encode()
         encoded_address = url.encode(address)
         if self.debug_mode:
@@ -86,6 +124,15 @@ class Client:
         except Exception as e:
             print('Error fetching location data:', e)
 
+    def get_location(self):
+        if not self.location:
+            return None
+        return self.location
+
+    def get_address(self):
+        if not self.address:
+            return None
+        return self.address
 
     def get(self, category ,parameter, forecast_days=1):
         if not self.wifi_connected:

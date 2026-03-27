@@ -1,5 +1,6 @@
 import nature_api
 import secrets
+import time
 
 # The nature api is a library for connecting to realtime weather and natural events data, using open-meteo and other sources.
 
@@ -21,6 +22,7 @@ import secrets
 # surface_pressure
 
 version = "0.1.0"
+DEBUG_MODE = False
 
 print(f"Starting Nature API client v{version} ...")
 
@@ -28,25 +30,61 @@ ssid = secrets.WIFI_SSID
 password = secrets.WIFI_PASSWORD
 
 # # Initialize the Nature API client
-client = nature_api.Client(ssid, password, default_refresh=300,status_led_pin="LED", debug_mode=False)
+client = nature_api.Client(ssid, password, default_refresh=300,status_led_pin="LED", debug_mode=DEBUG_MODE)
 
 # Connect to Wi-Fi
 client.connect_wifi()
 print('Connected to Wi-Fi')
 
-# Set the location for weather data (will be converted to latitude and longitude)
-address = "3 Sheridan Square, New York, NY"
+if (client.sync_time()):
+    print('Time synced successfully')
+    print(f"DateTime: {time.gmtime()[0]}-{time.gmtime()[1]:02}-{time.gmtime()[2]:02} {time.gmtime()[3]:02}:{time.gmtime()[4]:02}:{time.gmtime()[5]:02} UTC  ")
+
+else:
+    print('Time sync failed, using unsynced time')
+
+
 
 # Set the location for weather data (will be converted to latitude and longitude)
-client.set_location(address)
-print(f"Location set to: {address}")
+address_regular = "3 Sheridan Square, New York, NY"
+address_cold = "Nuuk, Greenland"
+address_hot = "Death Valley, California"
+
+# Set the location for weather data (will be converted to latitude and longitude)
+client.set_location(address_cold)
+print(f"Location set to: {client.get_address()}")
+
+try:
+    client.set_timezone_from_location()
+    print(f"Timezone set with UTC offset: {client.utc_offset} seconds")
+except Exception as e:
+    print(f"Error setting timezone: {e}")
 
 # Fetch the current wind speed at the specified location
 try:
-    wind_speed = client.get("current", "wind_speed_10m")
-    print(f"Wind speed at {address} is: {wind_speed} km/h")
-    temps = client.get("hourly", "temperature_2m")
-    print(f"Hourly temperatures at {address} is: {temps} °C")
+    cloud_cover = client.get("current", "cloud_cover")
+    print(f"Cloud cover at {client.get_address()} is: {cloud_cover}%")
+
+
+    # wind_speed = client.get("current", "wind_speed_10m")
+    # print(f"Wind speed at {client.get_address()} is: {wind_speed} km/h")
+
+    # temps = client.get("hourly", "temperature_2m")
+    # print(f"Hourly temperatures at {address_regular} are:", end=" ")
+    # for temp in temps:
+    #     print(f"{temp}°C", end=" ")
+    # print(" ")  # New line after printing temperatures
+
+    # temps = client.get("current", "temperature_2m")
+    # print(f"Current temperatures at {address_regular} is: {temps} °C")
+    # client.set_location(address_cold)
+    # print(f"Location set to: {address_cold}")
+    # temps = client.get("current", "temperature_2m")
+    # print(f"Current temperatures at {address_cold} is: {temps} °C")
+    # client.set_location(address_hot)
+    # print(f"Location set to: {address_hot}")
+    # temps = client.get("current", "temperature_2m")
+    # print(f"Current temperatures at {address_hot} is: {temps} °C")
 except Exception as e:
     print(f"Error fetching weather data: {e}")
 
