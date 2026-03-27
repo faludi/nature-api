@@ -3,3 +3,7 @@
 # username and password for WiFi
 WIFI_SSID = "your_SSID_name"
 WIFI_PASSWORD = "your_WiFi_password"
+
+# API KEYS
+# get at ipgeolocation.io (free tier available)
+ipgeoloation_api_key = "your_ipgeolocation_api_key" 

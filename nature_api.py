@@ -155,3 +155,32 @@ class Client:
             return data[category][parameter]
         else:
             raise ValueError(f"{parameter} is not available in the {category} weather data.")
+
+    def set_api_key(self, type, key):
+        if type == "ipgeolocation":
+            self.ipgeoloation_api_key = key
+        else:
+            raise ValueError("Unsupported API type. Currently only 'ipgeolocation' is supported.")
+        
+    def get_astro(self, category, parameter):
+        if not self.wifi_connected:
+            raise ConnectionError("Wi-Fi is not connected.")
+        
+        if not self.location:
+            raise ValueError("Location is not set.")
+
+        astro_url = f"https://api.ipgeolocation.io/v3/astronomy?apiKey={self.ipgeoloation_api_key}&lat={self.location['latitude']}&long={self.location['longitude']}"
+        
+        response = requests.get(astro_url)
+        data = response.json()
+        if self.debug_mode:
+            print(f"Astronomy data: {data}")  # Debugging line to check the astronomy data
+        response_code = response.status_code
+        if self.debug_mode:
+            print('Response code: ', response_code)
+
+        if category in data and parameter in data[category]:
+            return data[category][parameter]
+        else:
+            raise ValueError(f"{parameter} is not available in the {category} data.")
+        

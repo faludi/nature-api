@@ -43,15 +43,13 @@ if (client.sync_time()):
 else:
     print('Time sync failed, using unsynced time')
 
-
-
 # Set the location for weather data (will be converted to latitude and longitude)
 address_regular = "3 Sheridan Square, New York, NY"
 address_cold = "Nuuk, Greenland"
 address_hot = "Death Valley, California"
 
 # Set the location for weather data (will be converted to latitude and longitude)
-client.set_location(address_cold)
+client.set_location(address_hot)
 print(f"Location set to: {client.get_address()}")
 
 try:
@@ -60,11 +58,15 @@ try:
 except Exception as e:
     print(f"Error setting timezone: {e}")
 
+client.set_api_key("ipgeolocation", secrets.IPGEOLOCATION_API_KEY)
+
 # Fetch the current wind speed at the specified location
 try:
     cloud_cover = client.get("current", "cloud_cover")
     print(f"Cloud cover at {client.get_address()} is: {cloud_cover}%")
 
+    moon_illumination = client.get_astro("astronomy", "moon_illumination_percentage")
+    print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
 
     # wind_speed = client.get("current", "wind_speed_10m")
     # print(f"Wind speed at {client.get_address()} is: {wind_speed} km/h")
