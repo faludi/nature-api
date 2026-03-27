@@ -3,25 +3,9 @@ import secrets
 import time
 
 # The nature api is a library for connecting to realtime weather and natural events data, using open-meteo and other sources.
+# see the "example responses" directory for parameter options and example responses.
 
-# Valid "current" parameters include:
-# temperature_2m
-# relative_humidity_2m
-# apparent_temperature
-# is_day
-# wind_speed_10m
-# wind_direction_10m
-# wind_gusts_10m
-# precipitation
-# rain
-# showers
-# snowfall
-# weather_code
-# cloud_cover
-# pressure_msl
-# surface_pressure
-
-version = "0.1.0"
+version = "0.1.1"
 DEBUG_MODE = False
 
 print(f"Starting Nature API client v{version} ...")
@@ -36,10 +20,10 @@ client = nature_api.Client(ssid, password, default_refresh=300,status_led_pin="L
 client.connect_wifi()
 print('Connected to Wi-Fi')
 
+# Sync time using NTP
 if (client.sync_time()):
     print('Time synced successfully')
     print(f"DateTime: {time.gmtime()[0]}-{time.gmtime()[1]:02}-{time.gmtime()[2]:02} {time.gmtime()[3]:02}:{time.gmtime()[4]:02}:{time.gmtime()[5]:02} UTC  ")
-
 else:
     print('Time sync failed, using unsynced time')
 
@@ -49,19 +33,21 @@ address_cold = "Nuuk, Greenland"
 address_hot = "Death Valley, California"
 address_parents = "Sun City West, Arizona"
 
-# Set the location for weather data (will be converted to latitude and longitude)
-client.set_location(address_regular)
+# Set the physical location (will be converted to latitude and longitude)
+client.set_location(address_parents)
 print(f"Location set to: {client.get_address()}")
 
+# Set the timezone based on the location (using timeapi.io API)
 try:
     client.set_timezone_from_location()
     print(f"Timezone set with UTC offset: {client.utc_offset} seconds")
 except Exception as e:
     print(f"Error setting timezone: {e}")
 
+# Set the API key for ipgeolocation.io (required for astronomy data)
 client.set_api_key("ipgeolocation", secrets.IPGEOLOCATION_API_KEY)
 
-# Fetch the current wind speed at the specified location
+# Fetch some natural phenomena data at the specified location
 try:
     cloud_cover = client.get_forecast("current", "cloud_cover")
     print(f"Cloud cover at {client.get_address()} is: {cloud_cover}%")

@@ -40,28 +40,41 @@ class Client:
     #     if self.status_led_pin is not None:
     #         self.led.off()  # Turn off LED after connecting
 
-    def connect_wifi(self, max_retries=10):
-        wlan = network.WLAN(network.STA_IF)
-        wlan.active(True)
-        # Connect to network
-        wlan.connect(self.ssid, self.password)
-        max_retries = 10
-        while max_retries > 0:
-            if wlan.status() >= 3:
-                self.wifi_connected = True
-                break
-            max_retries -= 1
-            print('Waiting for Wi-Fi connection...')
-            time.sleep(1)
-        # Check if connection is successful
-        if wlan.status() != 3:
-            print('Failed to establish a network connection')
-            return False
-        else:
-            print('Connection successful!')
-            network_info = wlan.ifconfig()
-            print('IP address:', network_info[0])
-            return True
+    # def connect_wifi(self, max_retries=10):
+    #         connection = False
+    #         connection_timeout = max_retries
+    #         while not connection:
+    #             connection = connect_to_wifi()
+    #             connection_timeout -= 1
+    #             if connection_timeout == 0:
+    #                 print('Could not connect to Wi-Fi, exiting')
+    #                 machine.reset()
+                
+    def connect_wifi(self, attempts_per_cycle=10, max_attempts=10):
+        while max_attempts > 0:
+            wlan = network.WLAN(network.STA_IF)
+            wlan.active(True)
+            # Connect to network
+            wlan.connect(self.ssid, self.password)
+            tries = attempts_per_cycle
+            while tries > 0:
+                if wlan.status() >= 3:
+                    self.wifi_connected = True
+                    break
+                tries -= 1
+                print('Waiting for Wi-Fi connection...')
+                time.sleep(1)
+            # Check if connection is successful
+            if wlan.status() != 3:
+                print('Failed to establish a network connection')
+                max_attempts -= 1
+            else:
+                print('Connection successful!')
+                network_info = wlan.ifconfig()
+                print('IP address:', network_info[0])
+                return True
+        print('Exceeded maximum connection attempts, resetting device...')
+        machine.reset()
 
     def sync_time(self, max_retries=5):
         for _ in range(max_retries):
@@ -70,8 +83,9 @@ class Client:
                 ntptime.settime()
                 return True
             except Exception as e:
-                print("Failed to sync time:", e)
-            return False
+                print("Error syncing time:", e)
+        print(f"Failed to sync time after {max_retries} attempts.")
+        return False
         
     def set_timezone_from_location(self):
         if not self.location:
