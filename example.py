@@ -11,11 +11,11 @@ import time
 
 
 
-version = "0.1.1"
-DEBUG_MODE = True
+version = "0.1.3"
+DEBUG_MODE = False
 
 print(f"Starting Nature API client v{version} ...")
-print(f"UsingNature API library version: {nature_api.__version__}")
+print(f"Using Nature API library version: {nature_api.__version__}")
 
 ssid = secrets.WIFI_SSID
 password = secrets.WIFI_PASSWORD
@@ -57,20 +57,28 @@ except Exception as e:
 
 # Fetch some natural phenomena data at the specified location
 try:
-    results = client.get_forecast("current", "temperature_2m,cloud_cover,wind_speed_10m",)
-    print(f"Current temperature at {client.get_address()} is: {results['temperature_2m']} °C")
 
-    results = client.get_forecast("current", ["temperature_2m", "cloud_cover", "wind_speed_10m"])
-    temp = results["temperature_2m"]
-    cloud_cover = results["cloud_cover"]
-    speed = results["wind_speed_10m"]
-    print(f"Current weather at {client.get_address()}: {temp}°C, {cloud_cover}% cloud cover, {speed} km/h wind speed")
+    local_offset = client.get_local_timezone_offset()
+    print(f"Local timezone offset from UTC: {local_offset/60/60} hours")
 
-    results = client.get_forecast("current", ["wind_speed_10m"])
-    print(f"Current wind speed at {client.get_address()}: {results['wind_speed_10m']} km/h")
+    remote_offset = client.get_remote_offset()
+    print(f"Remote timezone offset from UTC: {remote_offset/60/60} hours")
 
-    results = client.get_forecast("current", "cloud_cover")
-    print(f"Cloud cover at {client.get_address()} is: {results['cloud_cover']}%")
+
+    # results = client.get_forecast("current", "temperature_2m,cloud_cover,wind_speed_10m",)
+    # print(f"Current temperature at {client.get_address()} is: {results['temperature_2m']} °C")
+
+    # results = client.get_forecast("current", ["temperature_2m", "cloud_cover", "wind_speed_10m"])
+    # temp = results["temperature_2m"]
+    # cloud_cover = results["cloud_cover"]
+    # speed = results["wind_speed_10m"]
+    # print(f"Current weather at {client.get_address()}: {temp}°C, {cloud_cover}% cloud cover, {speed} km/h wind speed")
+
+    # results = client.get_forecast("current", ["wind_speed_10m"])
+    # print(f"Current wind speed at {client.get_address()}: {results['wind_speed_10m']} km/h")
+
+    # results = client.get_forecast("current", "cloud_cover")
+    # print(f"Cloud cover at {client.get_address()} is: {results['cloud_cover']}%")
 
     # moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage")
     # print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")

@@ -7,7 +7,7 @@ from Url_encode import url_encode
 import machine
 import ntptime
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 class Client:
     def __init__(self, ssid, password, default_refresh=300, status_led_pin=None, debug_mode=False):
@@ -63,7 +63,22 @@ class Client:
                 print("Error syncing time:", e)
         print(f"Failed to sync time after {max_retries} attempts.")
         return False
-        
+    
+    def get_local_timezone_offset(self):
+        try:
+            response = requests.get(f"https://api.ipgeolocation.io/v3/timezone?apiKey={self.ipgeolocation_api_key}&ip=", headers=self.headers, timeout=10)
+            if self.debug_mode:
+                print(f"Response: {response.content}")
+            timezone_data = response.json()
+            if self.debug_mode:
+                print(f"Timezone data: {timezone_data}")  # Debugging line to check the timezone data  
+            if 'time_zone' in timezone_data and 'offset_with_dst' in timezone_data['time_zone']:
+                offset_str = timezone_data['time_zone']['offset_with_dst']
+                return int(offset_str) * 60 * 60
+        except Exception as e:
+            print('Error fetching local timezone offset:', e)
+        return 0 # if not available, assume UTC
+
     def set_timezone_from_location(self):
         if not self.location:
             raise ValueError("Location is not set.")
@@ -127,6 +142,10 @@ class Client:
         if not self.address:
             return None
         return self.address
+    
+    def get_remote_offset(self):
+        return self.utc_offset
+
     
     def get_forecast(self, category, parameters, forecast_days=1):
         if not self.wifi_connected:
