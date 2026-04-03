@@ -7,7 +7,7 @@ from Url_encode import url_encode
 import machine
 import ntptime
 
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 
 class Client:
     def __init__(self, ssid, password, default_refresh=300, status_led_pin=None, debug_mode=False):
@@ -212,7 +212,7 @@ class Client:
         # If we have any missing/expired parameters, fetch them in a single request
         if missing_params:
             missing_params_string = ",".join(missing_params)
-            weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={self.location['latitude']}&longitude={self.location['longitude']}&{category}={missing_params_string}&forecast_days={forecast_days}"
+            weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={self.location['latitude']}&longitude={self.location['longitude']}&{category}={missing_params_string}&forecast_days={forecast_days}&timezone=auto"
             response = requests.get(weather_url, headers=self.headers, timeout=10)
             data = response.json()
             if self.debug_mode:

@@ -49,12 +49,12 @@ address_parents = "Sun City West, Arizona"
 client.set_location(address_parents)
 print(f"Location set to: {client.get_address()}")
 
-# Set the timezone based on the location (using timeapi.io API)
-try:
-    client.set_timezone_from_location()
-    print(f"Timezone set with UTC offset: {client.utc_offset/60/60} hours")
-except Exception as e:
-    print(f"Error setting timezone: {e}")
+# # Set the timezone based on the location (using timeapi.io API)
+# try:
+#     client.set_timezone_from_location()
+#     print(f"Timezone set with UTC offset: {client.utc_offset/60/60} hours")
+# except Exception as e:
+#     print(f"Error setting timezone: {e}")
 
 # Fetch some natural phenomena data at the specified location
 try:
@@ -69,16 +69,16 @@ try:
     # results = client.get_forecast("current", "temperature_2m,cloud_cover,wind_speed_10m",)
     # print(f"Current temperature at {client.get_address()} is: {results['temperature_2m']} °C")
 
-    results = client.get_forecast("current", ["temperature_2m","wind_speed_10m"], expiry=1)
-    print(f"Current weather at {client.get_address()}: {results['temperature_2m']}°C, {results['wind_speed_10m']} km/h wind speed")
+    # results = client.get_forecast("current", ["temperature_2m","wind_speed_10m"], expiry=1)
+    # print(f"Current weather at {client.get_address()}: {results['temperature_2m']}°C, {results['wind_speed_10m']} km/h wind speed")
     
 
-    for i in range(2):
-        results = client.get_forecast("current", ["temperature_2m", "cloud_cover", "wind_speed_10m"])
-        temp = results["temperature_2m"]
-        cloud_cover = results["cloud_cover"]
-        speed = results["wind_speed_10m"]
-        print(f"Current weather at {client.get_address()}: {temp}°C, {cloud_cover}% cloud cover, {speed} km/h wind speed")
+    # for i in range(2):
+    #     results = client.get_forecast("current", ["temperature_2m", "cloud_cover", "wind_speed_10m"])
+    #     temp = results["temperature_2m"]
+    #     cloud_cover = results["cloud_cover"]
+    #     speed = results["wind_speed_10m"]
+    #     print(f"Current weather at {client.get_address()}: {temp}°C, {cloud_cover}% cloud cover, {speed} km/h wind speed")
 
     # results = client.get_forecast("current", ["wind_speed_10m"])
     # print(f"Current wind speed at {client.get_address()}: {results['wind_speed_10m']} km/h")
@@ -86,40 +86,56 @@ try:
     # results = client.get_forecast("current", "cloud_cover")
     # print(f"Cloud cover at {client.get_address()} is: {results['cloud_cover']}%")
 
-    moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage", expiry=10)
-    print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
+    # moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage", expiry=10)
+    # print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
 
-    time.sleep(2)
+    # time.sleep(2)
 
-    moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage")
-    print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
+    # moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage")
+    # print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
 
-    time.sleep(8)
+    # time.sleep(8)
 
-    moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage")
-    print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
+    # moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage")
+    # print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
 
 
 
     # wind_speed = client.get_forecast("current", "wind_speed_10m")
     # print(f"Wind speed at {client.get_address()} is: {wind_speed} km/h")
 
-    # temps = client.get_forecast("hourly", "temperature_2m")
-    # print(f"Hourly temperatures at {address_regular} are:", end=" ")
-    # for temp in temps:
-    #     print(f"{temp}°C", end=" ")
-    # print(" ")  # New line after printing temperatures
+    results = client.get_forecast("hourly", "temperature_2m")
+    print(f"Hourly temperatures at {client.get_address()} are:", end=" ")
+    for temp in results["temperature_2m"]:
+        print(f"{temp}°C", end=" ")
+    print(" ")  # New line after printing temperatures
+
+    client.set_location(address_cold)
+
+    results = client.get_forecast("daily", "precipitation_hours", forecast_days=7)
+    print(f"Daily precipitation at {client.get_address()} are:", end=" ")
+    for precip in results["precipitation_hours"]:
+        print(f"{precip} mm", end=" ")
+    print(" ")  # New line after printing temperatures
+
+    client.set_location('Manaus, Brazil')
+
+    results = client.get_forecast("daily", "precipitation_hours", forecast_days=7)
+    print(f"Daily precipitation at {client.get_address()} are:", end=" ")
+    for precip in results["precipitation_hours"]:
+        print(f"{precip} mm", end=" ")
+    print(" ")  # New line after printing temperatures
 
     # temps = client.get_forecast("current", "temperature_2m")
-    # print(f"Current temperatures at {address_regular} is: {temps} °C")
+    # print(f"Current temperatures at {client.get_address()} is: {temps} °C")
     # client.set_location(address_cold)
     # print(f"Location set to: {address_cold}")
     # temps = client.get_forecast("current", "temperature_2m")
-    # print(f"Current temperatures at {address_cold} is: {temps} °C")
+    # print(f"Current temperatures at {client.get_address()} is: {temps} °C")
     # client.set_location(address_hot)
     # print(f"Location set to: {address_hot}")
     # temps = client.get_forecast("current", "temperature_2m")
-    # print(f"Current temperatures at {address_hot} is: {temps} °C")
+    # print(f"Current temperatures at {client.get_address()} is: {temps} °C")
 
 except Exception as e:
     print(f"Error fetching weather data: {e}")
