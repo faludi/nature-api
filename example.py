@@ -12,7 +12,7 @@ import time
 
 
 version = "0.1.4"
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 print(f"Starting Nature API client v{version} ...")
 print(f"Using Nature API library version: {nature_api.__version__}")
@@ -32,6 +32,7 @@ client.connect_wifi()
 print('Connected to Wi-Fi')
 
 # Sync time using NTP
+print('Syncing time via NTP...')
 if (client.sync_time()):
     print('Time synced successfully')
     print(f"DateTime: {time.gmtime()[0]}-{time.gmtime()[1]:02}-{time.gmtime()[2]:02} {time.gmtime()[3]:02}:{time.gmtime()[4]:02}:{time.gmtime()[5]:02} UTC  ")

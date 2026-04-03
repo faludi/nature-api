@@ -58,7 +58,6 @@ class Client:
     def sync_time(self, max_retries=5):
         for _ in range(max_retries):
             try:
-                print('Syncing time via NTP...')
                 ntptime.settime()
                 return True
             except Exception as e:
