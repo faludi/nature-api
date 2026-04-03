@@ -85,8 +85,20 @@ try:
     # results = client.get_forecast("current", "cloud_cover")
     # print(f"Cloud cover at {client.get_address()} is: {results['cloud_cover']}%")
 
-    # moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage")
-    # print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
+    moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage", expiry=10)
+    print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
+
+    time.sleep(2)
+
+    moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage")
+    print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
+
+    time.sleep(8)
+
+    moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage")
+    print(f"Moon illumination at {client.get_address()} is: {moon_illumination}%")
+
+
 
     # wind_speed = client.get_forecast("current", "wind_speed_10m")
     # print(f"Wind speed at {client.get_address()} is: {wind_speed} km/h")

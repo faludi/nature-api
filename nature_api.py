@@ -248,15 +248,23 @@ class Client:
         else:
             raise ValueError("Unsupported API type. Currently only 'ipgeolocation' is supported.")
         
-    def get_astronomy(self, category, parameter):
+    def get_astronomy(self, category, parameter, expiry=900):
         if not self.wifi_connected:
             raise ConnectionError("Wi-Fi is not connected.")
         
         if not self.location:
             raise ValueError("Location is not set.")
 
+        # Check cache first
+        cache_return = self.check_cache(category, parameter, expiry)
+        if cache_return is not None and cache_return != "expired":
+            if self.debug_mode:
+                print(f"Cache hit for astronomy {parameter}: {cache_return}")
+            return cache_return
+        elif cache_return == "expired" and self.debug_mode:
+            print(f"Cache expired for astronomy {parameter}")
+
         astro_url = f"https://api.ipgeolocation.io/v3/astronomy?apiKey={self.ipgeolocation_api_key}&lat={self.location['latitude']}&long={self.location['longitude']}"
-        
         response = requests.get(astro_url, headers=self.headers, timeout=10)
         data = response.json()
         if self.debug_mode:
@@ -266,7 +274,12 @@ class Client:
             print('Response code: ', response_code)
 
         if category in data and parameter in data[category]:
-            return data[category][parameter]
+            val = data[category][parameter]
+            try:
+                self.set_cache(category, parameter, val, expiry)
+            except Exception:
+                pass
+            return val
         else:
             raise ValueError(f"{parameter} is not available in the {category} data.")
         
