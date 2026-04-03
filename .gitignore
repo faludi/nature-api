@@ -4,3 +4,4 @@
 *.code-workspace
 secrets.py
 testing/
+__pycache__/

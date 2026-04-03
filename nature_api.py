@@ -7,7 +7,7 @@ from Url_encode import url_encode
 import machine
 import ntptime
 
-__version__ = "0.1.4"
+__version__ = "0.1.6"
 
 class Client:
     def __init__(self, ssid, password, default_refresh=300, status_led_pin=None, debug_mode=False):
@@ -22,6 +22,8 @@ class Client:
         self.utc_offset = 0
         self.headers = {"User-Agent": "rp2"}  # Add a custom user agent
         self.debug_mode = debug_mode
+        # In-memory TTL cache for fetched data: key -> { 'value': ..., 'expires_at': ... }
+        self._cache = {}
 
         if self.status_led_pin is not None:
             self.led = machine.Pin(self.status_led_pin, machine.Pin.OUT)
@@ -133,6 +135,38 @@ class Client:
         except Exception as e:
             print('Error fetching location data:', e)
 
+    def _cache_key(self, category, parameter):
+        """Create a cache key that includes category, parameter and current location.
+        Falls back to a generic key if location is not set."""
+        if self.location and 'latitude' in self.location and 'longitude' in self.location:
+            return f"{category}:{parameter}:{self.location['latitude']},{self.location['longitude']}"
+        return f"{category}:{parameter}:none"
+
+    def check_cache(self, category, parameter, expiry):
+        """Return cached value if present and unexpired, return 'expired' if it existed but expired, else None."""
+        if self.debug_mode:
+            print(f"Checking cache for category: {category}, parameter: {parameter}")  # Debugging line to check cache lookups
+        key = self._cache_key(category, parameter)
+        entry = self._cache.get(key)
+        if not entry:
+            return None
+        if time.time() < entry.get('expires_at', 0):
+            return entry.get('value')
+        # expired
+        try:
+            del self._cache[key]
+        except KeyError:
+            pass
+        return "expired"
+
+    def set_cache(self, category, parameter, value, expiry):
+        """Store a value in the cache with an expiry (seconds)."""
+        key = self._cache_key(category, parameter)
+        self._cache[key] = {
+            'value': value,
+            'expires_at': time.time() + int(expiry)
+        }
+
     def get_location(self):
         if not self.location:
             return None
@@ -147,7 +181,7 @@ class Client:
         return self.utc_offset
 
     
-    def get_forecast(self, category, parameters, forecast_days=1):
+    def get_forecast(self, category, parameters, forecast_days=1, expiry=900):
         if not self.wifi_connected:
             raise ConnectionError("Wi-Fi is not connected.")
         
@@ -160,46 +194,54 @@ class Client:
         params_string = ",".join(parameters)
         if self.debug_mode:
             print(f"Requesting forecast for parameters: {params_string}")  # Debugging line to check the requested parameters
-        weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={self.location['latitude']}&longitude={self.location['longitude']}&{category}={params_string}&forecast_days={forecast_days}"
-        
-        response = requests.get(weather_url, headers=self.headers, timeout=10)
-        data = response.json()
-        if self.debug_mode:
-            print(f"Weather data: {data}")  # Debugging line to check the weather data
-        response_code = response.status_code
-        if self.debug_mode:
-            print('Response code: ', response_code)
 
-        results = {}
-        for parameter in parameters:
-            if category in data and parameter in data[category]:
-                results[parameter] = data[category][parameter]
+        # First, check cache for each parameter and collect cached values.
+        cached_results = {}
+        missing_params = []
+        for param in parameters:
+            cache_return = self.check_cache(category, param, expiry)
+            if cache_return is not None and cache_return != "expired":
+                if self.debug_mode:
+                    print(f"Cache hit for {param}: {cache_return}")
+                cached_results[param] = cache_return
             else:
-                results[parameter] = None  # or you could choose to raise an error or skip it
-        return results
+                if cache_return == "expired" and self.debug_mode:
+                    print(f"Cache expired for {param}")
+                missing_params.append(param)
 
-    # def get_forecast(self, category ,parameter, forecast_days=1):
-    #     if not self.wifi_connected:
-    #         raise ConnectionError("Wi-Fi is not connected.")
-        
-    #     if not self.location:
-    #         raise ValueError("Location is not set.")
+        fetched_results = {}
+        # If we have any missing/expired parameters, fetch them in a single request
+        if missing_params:
+            missing_params_string = ",".join(missing_params)
+            weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={self.location['latitude']}&longitude={self.location['longitude']}&{category}={missing_params_string}&forecast_days={forecast_days}"
+            response = requests.get(weather_url, headers=self.headers, timeout=10)
+            data = response.json()
+            if self.debug_mode:
+                print(f"Weather data: {data}")  # Debugging line to check the weather data
+            for parameter in missing_params:
+                if category in data and parameter in data[category]:
+                    fetched_results[parameter] = data[category][parameter]
+                else:
+                    fetched_results[parameter] = None
 
-    #     weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={self.location['latitude']}&longitude={self.location['longitude']}&{category}={parameter}&forecast_days={forecast_days}"
-        
-    #     response = requests.get(weather_url, headers=self.headers, timeout=10)
-    #     data = response.json()
-    #     if self.debug_mode:
-    #         print(f"Weather data: {data}")  # Debugging line to check the weather data
-    #     response_code = response.status_code
-    #     if self.debug_mode:
-    #         print('Response code: ', response_code)
+            # Cache fetched results (including None values)
+            try:
+                for parameter, val in fetched_results.items():
+                    self.set_cache(category, parameter, val, expiry)
+            except Exception:
+                pass
 
-    #     if category in data and parameter in data[category]:
-    #         return data[category][parameter]
-    #     else:
-    #         raise ValueError(f"{parameter} is not available in the {category} weather data.")
-
+        # Merge cached and fetched results into a single dict, preferring cached values.
+        merged = {}
+        for param in parameters:
+            if param in cached_results:
+                merged[param] = cached_results[param]
+            elif param in fetched_results:
+                merged[param] = fetched_results[param]
+            else:
+                merged[param] = None
+        return merged
+    
     def set_api_key(self, type, key):
         if type == "ipgeolocation":
             self.ipgeolocation_api_key = key

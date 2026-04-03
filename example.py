@@ -11,8 +11,8 @@ import time
 
 
 
-version = "0.1.3"
-DEBUG_MODE = False
+version = "0.1.4"
+DEBUG_MODE = True
 
 print(f"Starting Nature API client v{version} ...")
 print(f"Using Nature API library version: {nature_api.__version__}")
@@ -58,21 +58,26 @@ except Exception as e:
 # Fetch some natural phenomena data at the specified location
 try:
 
-    local_offset = client.get_local_timezone_offset()
-    print(f"Local timezone offset from UTC: {local_offset/60/60} hours")
+    # local_offset = client.get_local_timezone_offset()
+    # print(f"Local timezone offset from UTC: {local_offset/60/60} hours")
 
-    remote_offset = client.get_remote_offset()
-    print(f"Remote timezone offset from UTC: {remote_offset/60/60} hours")
+    # remote_offset = client.get_remote_offset()
+    # print(f"Remote timezone offset from UTC: {remote_offset/60/60} hours")
 
 
     # results = client.get_forecast("current", "temperature_2m,cloud_cover,wind_speed_10m",)
     # print(f"Current temperature at {client.get_address()} is: {results['temperature_2m']} °C")
 
-    # results = client.get_forecast("current", ["temperature_2m", "cloud_cover", "wind_speed_10m"])
-    # temp = results["temperature_2m"]
-    # cloud_cover = results["cloud_cover"]
-    # speed = results["wind_speed_10m"]
-    # print(f"Current weather at {client.get_address()}: {temp}°C, {cloud_cover}% cloud cover, {speed} km/h wind speed")
+    results = client.get_forecast("current", ["temperature_2m","wind_speed_10m"], expiry=1)
+    print(f"Current weather at {client.get_address()}: {results['temperature_2m']}°C, {results['wind_speed_10m']} km/h wind speed")
+    
+
+    for i in range(2):
+        results = client.get_forecast("current", ["temperature_2m", "cloud_cover", "wind_speed_10m"])
+        temp = results["temperature_2m"]
+        cloud_cover = results["cloud_cover"]
+        speed = results["wind_speed_10m"]
+        print(f"Current weather at {client.get_address()}: {temp}°C, {cloud_cover}% cloud cover, {speed} km/h wind speed")
 
     # results = client.get_forecast("current", ["wind_speed_10m"])
     # print(f"Current wind speed at {client.get_address()}: {results['wind_speed_10m']} km/h")
