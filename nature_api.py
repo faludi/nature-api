@@ -7,7 +7,7 @@ from Url_encode import url_encode
 import machine
 import ntptime
 
-__version__ = "0.1.7"
+__version__ = "0.1.4"
 
 class Client:
     def __init__(self, ssid, password, default_refresh=300, status_led_pin=None, debug_mode=False):
@@ -58,6 +58,7 @@ class Client:
     def sync_time(self, max_retries=5):
         for _ in range(max_retries):
             try:
+                print('Syncing time via NTP...')
                 ntptime.settime()
                 return True
             except Exception as e:
@@ -143,8 +144,6 @@ class Client:
 
     def check_cache(self, category, parameter, expiry):
         """Return cached value if present and unexpired, return 'expired' if it existed but expired, else None."""
-        if self.debug_mode:
-            print(f"Checking cache for category: {category}, parameter: {parameter}")  # Debugging line to check cache lookups
         key = self._cache_key(category, parameter)
         entry = self._cache.get(key)
         if not entry:
@@ -194,52 +193,42 @@ class Client:
         if self.debug_mode:
             print(f"Requesting forecast for parameters: {params_string}")  # Debugging line to check the requested parameters
 
-        # First, check cache for each parameter and collect cached values.
-        cached_results = {}
-        missing_params = []
+        # Check cache for each parameter and return cached value if available and not expired
         for param in parameters:
             cache_return = self.check_cache(category, param, expiry)
             if cache_return is not None and cache_return != "expired":
                 if self.debug_mode:
-                    print(f"Cache hit for {param}: {cache_return}")
-                cached_results[param] = cache_return
+                    print(f"Cache hit for {param}: {cache_return}")  # Debugging line to check cache hits
+                return {param: cache_return}
+            elif cache_return == "expired":
+                if self.debug_mode:
+                    print(f"Cache expired for {param}")  # Debugging line to check cache expiration
+
+        weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={self.location['latitude']}&longitude={self.location['longitude']}&{category}={params_string}&forecast_days={forecast_days}"
+        
+        response = requests.get(weather_url, headers=self.headers, timeout=10)
+        data = response.json()
+        if self.debug_mode:
+            print(f"Weather data: {data}")  # Debugging line to check the weather data
+        response_code = response.status_code
+        if self.debug_mode:
+            print('Response code: ', response_code)
+
+        results = {}
+        for parameter in parameters:
+            if category in data and parameter in data[category]:
+                results[parameter] = data[category][parameter]
             else:
-                if cache_return == "expired" and self.debug_mode:
-                    print(f"Cache expired for {param}")
-                missing_params.append(param)
-
-        fetched_results = {}
-        # If we have any missing/expired parameters, fetch them in a single request
-        if missing_params:
-            missing_params_string = ",".join(missing_params)
-            weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={self.location['latitude']}&longitude={self.location['longitude']}&{category}={missing_params_string}&forecast_days={forecast_days}&timezone=auto"
-            response = requests.get(weather_url, headers=self.headers, timeout=10)
-            data = response.json()
-            if self.debug_mode:
-                print(f"Weather data: {data}")  # Debugging line to check the weather data
-            for parameter in missing_params:
-                if category in data and parameter in data[category]:
-                    fetched_results[parameter] = data[category][parameter]
-                else:
-                    fetched_results[parameter] = None
-
-            # Cache fetched results (including None values)
-            try:
-                for parameter, val in fetched_results.items():
-                    self.set_cache(category, parameter, val, expiry)
-            except Exception:
-                pass
-
-        # Merge cached and fetched results into a single dict, preferring cached values.
-        merged = {}
-        for param in parameters:
-            if param in cached_results:
-                merged[param] = cached_results[param]
-            elif param in fetched_results:
-                merged[param] = fetched_results[param]
-            else:
-                merged[param] = None
-        return merged
+                results[parameter] = None  # or you could choose to raise an error or skip it
+        # Store fetched values in cache for future requests
+        try:
+            for parameter, val in results.items():
+                # cache even None values so repeated misses do not repeatedly hit the API
+                self.set_cache(category, parameter, val, expiry)
+        except Exception:
+            # If caching fails for any reason, continue and return results
+            pass
+        return results
     
     def set_api_key(self, type, key):
         if type == "ipgeolocation":
@@ -247,23 +236,15 @@ class Client:
         else:
             raise ValueError("Unsupported API type. Currently only 'ipgeolocation' is supported.")
         
-    def get_astronomy(self, category, parameter, expiry=900):
+    def get_astronomy(self, category, parameter):
         if not self.wifi_connected:
             raise ConnectionError("Wi-Fi is not connected.")
         
         if not self.location:
             raise ValueError("Location is not set.")
 
-        # Check cache first
-        cache_return = self.check_cache(category, parameter, expiry)
-        if cache_return is not None and cache_return != "expired":
-            if self.debug_mode:
-                print(f"Cache hit for astronomy {parameter}: {cache_return}")
-            return cache_return
-        elif cache_return == "expired" and self.debug_mode:
-            print(f"Cache expired for astronomy {parameter}")
-
         astro_url = f"https://api.ipgeolocation.io/v3/astronomy?apiKey={self.ipgeolocation_api_key}&lat={self.location['latitude']}&long={self.location['longitude']}"
+        
         response = requests.get(astro_url, headers=self.headers, timeout=10)
         data = response.json()
         if self.debug_mode:
@@ -273,12 +254,7 @@ class Client:
             print('Response code: ', response_code)
 
         if category in data and parameter in data[category]:
-            val = data[category][parameter]
-            try:
-                self.set_cache(category, parameter, val, expiry)
-            except Exception:
-                pass
-            return val
+            return data[category][parameter]
         else:
             raise ValueError(f"{parameter} is not available in the {category} data.")
         
