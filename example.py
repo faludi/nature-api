@@ -72,7 +72,6 @@ try:
 
     for i in range(2):
         results = client.get_forecast("current", ["temperature_2m", "cloud_cover", "wind_speed_10m"])
-        print("Type of results variable:", type(results))
         temp = results["temperature_2m"]
         cloud_cover = results["cloud_cover"]
         speed = results["wind_speed_10m"]
@@ -98,6 +97,39 @@ try:
     moon_illumination = results["moon_illumination_percentage"]
     sunrise_time = results["sunrise"]
     print(f"Astronomy data at {client.get_address()}: moon illumination: {moon_illumination}%, sunrise: {sunrise_time}")
+
+    # Latest 5 earthquakes within 500 km of the current address
+    location = client.get_location()
+    if location is None:
+        print("Error: Unable to get location for earthquake query")
+    else:
+        earthquake_params = {
+            "latitude": location["latitude"],
+            "longitude": location["longitude"],
+            "maxradiuskm": 500,
+            "orderby": "time",
+            "limit": 5
+        }
+        earthquake_results = client.get_earthquakes(earthquake_params)
+        print(f"Latest 5 earthquakes within 500 km of {client.get_address()}: {len(earthquake_results.get('features', []))} found")
+        for eq in earthquake_results.get("features", []):
+            eq_time = time.gmtime(int(eq["properties"]["time"] / 1000))  # Convert from milliseconds to seconds
+            eq_time_str = f"{eq_time[0]}-{eq_time[1]:02}-{eq_time[2]:02} {eq_time[3]:02}:{eq_time[4]:02}:{eq_time[5]:02} UTC"
+            print(f" - Magnitude {eq['properties']['mag']} earthquake at {eq_time_str}, location: {eq['properties']['place']}")
+
+    # Latest 3 earthquakes magnitude 5 or greater
+    earthquake_params = {
+        "minmagnitude": 6,
+        "orderby": "time",
+        "limit": 3
+    }
+    earthquake_results = client.get_earthquakes(earthquake_params)
+    print(f"Latest 3 earthquakes magnitude 5+ found: {len(earthquake_results.get('features', []))}")
+    print("Recent magnitude 6+ earthquakes:")
+    for eq in earthquake_results.get("features", []):
+        eq_time = time.gmtime(int(eq["properties"]["time"] / 1000))  # Convert from milliseconds to seconds
+        eq_time_str = f"{eq_time[0]}-{eq_time[1]:02}-{eq_time[2]:02} {eq_time[3]:02}:{eq_time[4]:02}:{eq_time[5]:02} UTC"
+        print(f" - Magnitude {eq['properties']['mag']} earthquake at {eq_time_str}, location: {eq['properties']['place']}")
 
     # results = client.get_forecast("hourly", "temperature_2m")
     # print(f"Hourly temperatures at {client.get_address()} are:", end=" ")

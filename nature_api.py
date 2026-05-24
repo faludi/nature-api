@@ -7,7 +7,7 @@ from Url_encode import url_encode
 import machine
 import ntptime
 
-__version__ = "0.1.7"
+__version__ = "0.1.8"
 
 class Client:
     def __init__(self, ssid, password, default_refresh=300, status_led_pin=None, debug_mode=False):
@@ -165,6 +165,75 @@ class Client:
             'expires_at': time.time() + int(expiry)
         }
 
+    def _normalize_parameter_list(self, parameters):
+        if isinstance(parameters, str):
+            parameters = [param.strip() for param in parameters.split(",") if param.strip()]
+        if not isinstance(parameters, list):
+            raise ValueError("parameters must be a string or list of strings")
+        return parameters
+
+    def _fetch_cached_parameters(self, category, parameters, expiry):
+        results = {}
+        params_to_fetch = []
+        for param in parameters:
+            cache_return = self.check_cache(category, param, expiry)
+            if cache_return is not None and cache_return != "expired":
+                if self.debug_mode:
+                    print(f"Cache hit for {param}: {cache_return}")
+                results[param] = cache_return
+            else:
+                if cache_return == "expired" and self.debug_mode:
+                    print(f"Cache expired for {param}")
+                params_to_fetch.append(param)
+        return results, params_to_fetch
+
+    def _execute_request(self, url, expiry=900, cache_category=None, cache_key=None):
+        if cache_category is not None and cache_key is not None:
+            cache_return = self.check_cache(cache_category, cache_key, expiry)
+            if cache_return is not None and cache_return != "expired":
+                if self.debug_mode:
+                    print(f"Cache hit for {cache_category}:{cache_key}")
+                return cache_return
+            if cache_return == "expired" and self.debug_mode:
+                print(f"Cache expired for {cache_category}:{cache_key}")
+
+        if self.debug_mode:
+            print(f"Requesting URL: {url}")
+
+        response = requests.get(url, headers=self.headers, timeout=10)
+        data = response.json()
+        if self.debug_mode:
+            print(f"Response data: {data}")
+            print('Response code: ', response.status_code)
+
+        if cache_category is not None and cache_key is not None:
+            try:
+                self.set_cache(cache_category, cache_key, data, expiry)
+            except Exception:
+                pass
+
+        return data
+
+    def _execute_parameterized_request(self, category, parameters, expiry, build_url_fn, parse_fn):
+        parameters = self._normalize_parameter_list(parameters)
+        single_parameter = len(parameters) == 1
+        results, params_to_fetch = self._fetch_cached_parameters(category, parameters, expiry)
+
+        if params_to_fetch:
+            url = build_url_fn(params_to_fetch)
+            data = self._execute_request(url, expiry=expiry)
+            parsed = parse_fn(data, params_to_fetch)
+            for param, val in parsed.items():
+                results[param] = val
+                try:
+                    self.set_cache(category, param, val, expiry)
+                except Exception:
+                    pass
+
+        if single_parameter:
+            return results[parameters[0]]
+        return results
+
     def get_location(self):
         if not self.location:
             return None
@@ -185,63 +254,37 @@ class Client:
         
         if not self.location:
             raise ValueError("Location is not set.")
-        
-        if type(parameters) is str:
-            parameters = parameters.split(",")  # Convert comma-separated string to list
 
-        single_parameter = len(parameters) == 1
-        params_string = ",".join(parameters)
-        if self.debug_mode:
-            print(f"Requesting forecast for parameters: {params_string}")  # Debugging line to check the requested parameters
+        location = self.location
+        assert location is not None
 
-        results = {}
-        params_to_fetch = []
-        
-        # Check cache for each parameter
-        for param in parameters:
-            cache_return = self.check_cache(category, param, expiry)
-            if cache_return is not None and cache_return != "expired":
-                if self.debug_mode:
-                    print(f"Cache hit for {param}: {cache_return}")  # Debugging line to check cache hits
-                results[param] = cache_return
-            else:
-                if cache_return == "expired":
-                    if self.debug_mode:
-                        print(f"Cache expired for {param}")  # Debugging line to check cache expiration
-                params_to_fetch.append(param)
-        
-        # Fetch only the parameters not in cache
-        if params_to_fetch:
+        def build_forecast_url(params_to_fetch):
             params_fetch_string = ",".join(params_to_fetch)
-            weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={self.location['latitude']}&longitude={self.location['longitude']}&{category}={params_fetch_string}&forecast_days={forecast_days}"
-            
-            response = requests.get(weather_url, headers=self.headers, timeout=10)
-            data = response.json()
-            if self.debug_mode:
-                print(f"Weather data: {data}")  # Debugging line to check the weather data
-            response_code = response.status_code
-            if self.debug_mode:
-                print('Response code: ', response_code)
+            return (
+                f"https://api.open-meteo.com/v1/forecast?latitude={location['latitude']}"
+                f"&longitude={location['longitude']}&{category}={params_fetch_string}"
+                f"&forecast_days={forecast_days}"
+            )
 
-            # Add fetched values to results
-            for parameter in params_to_fetch:
-                if category in data and parameter in data[category]:
-                    results[parameter] = data[category][parameter]
-                else:
-                    results[parameter] = None
-            
-            # Store fetched values in cache
-            try:
-                for parameter in params_to_fetch:
-                    val = results[parameter]
-                    self.set_cache(category, parameter, val, expiry)
-            except Exception:
-                # If caching fails for any reason, continue and return results
-                pass
-        
-        if single_parameter:
-            return results[parameters[0]]
-        return results
+        def parse_forecast_response(data, params_to_fetch):
+            if isinstance(data, dict):
+                category_data = data.get(category)
+            else:
+                category_data = None
+            return {
+                parameter: category_data[parameter]
+                if isinstance(category_data, dict) and parameter in category_data
+                else None
+                for parameter in params_to_fetch
+            }
+
+        return self._execute_parameterized_request(
+            category,
+            parameters,
+            expiry,
+            build_forecast_url,
+            parse_forecast_response,
+        )
     
     def set_api_key(self, type, key):
         if type == "ipgeolocation":
@@ -256,67 +299,41 @@ class Client:
         if not self.location:
             raise ValueError("Location is not set.")
 
-        if type(parameter) is str:
-            parameter = [param.strip() for param in parameter.split(",") if param.strip()]
-
-        if not isinstance(parameter, list):
-            raise ValueError("parameter must be a string or list of strings")
-
-        single_parameter = len(parameter) == 1
-        if self.debug_mode:
-            print(f"Requesting astronomy data for parameters: {parameter}")
+        location = self.location
+        assert location is not None
 
         if not self.ipgeolocation_api_key:
             raise ValueError("API key is required for astronomy data.")
 
-        results = {}
-        params_to_fetch = []
-        
-        # Check cache for each parameter
-        for param in parameter:
-            cache_return = self.check_cache(category, param, expiry)
-            if cache_return is not None and cache_return != "expired":
-                if self.debug_mode:
-                    print(f"Cache hit for {param}: {cache_return}")
-                results[param] = cache_return
-            else:
-                if cache_return == "expired":
-                    if self.debug_mode:
-                        print(f"Cache expired for {param}")
-                params_to_fetch.append(param)
-        
-        # Fetch only if there are parameters not in cache
-        if params_to_fetch:
-            astro_url = f"https://api.ipgeolocation.io/v3/astronomy?apiKey={self.ipgeolocation_api_key}&lat={self.location['latitude']}&long={self.location['longitude']}"
-            
-            response = requests.get(astro_url, headers=self.headers, timeout=10)
-            data = response.json()
-            if self.debug_mode:
-                print(f"Astronomy data: {data}")  # Debugging line to check the astronomy data
-            response_code = response.status_code
-            if self.debug_mode:
-                print('Response code: ', response_code)
+        def build_astronomy_url(params_to_fetch):
+            return (
+                f"https://api.ipgeolocation.io/v3/astronomy?apiKey={self.ipgeolocation_api_key}"
+                f"&lat={location['latitude']}&long={location['longitude']}"
+            )
 
-            # Add fetched values to results
+        def parse_astronomy_response(data, params_to_fetch):
+            if isinstance(data, dict):
+                category_data = data.get(category)
+            else:
+                category_data = None
+
+            results = {}
             for param in params_to_fetch:
-                if category in data and param in data[category]:
-                    results[param] = data[category][param]
-                elif param in data:
+                if isinstance(category_data, dict) and param in category_data:
+                    results[param] = category_data[param]
+                elif isinstance(data, dict) and param in data:
                     results[param] = data[param]
                 else:
                     results[param] = None
+            return results
 
-            # Store fetched values in cache
-            try:
-                for param in params_to_fetch:
-                    val = results[param]
-                    self.set_cache(category, param, val, expiry)
-            except Exception:
-                pass
-
-        if single_parameter:
-            return results[parameter[0]]
-        return results
+        return self._execute_parameterized_request(
+            category,
+            parameter,
+            expiry,
+            build_astronomy_url,
+            parse_astronomy_response,
+        )
 
     def get_earthquakes(self, params, expiry=900):
         if not self.wifi_connected:
@@ -329,8 +346,7 @@ class Client:
             raise ValueError("params must contain at least one query parameter")
 
         query_params = dict(params)
-        if 'format' not in query_params:
-            query_params['format'] = 'geojson'
+        query_params.setdefault('format', 'geojson')
 
         url_encoder = url_encode()
         query_string = "&".join(
@@ -340,26 +356,7 @@ class Client:
         if self.debug_mode:
             print(f"Requesting earthquakes with query: {query_string}")
 
-        cache_return = self.check_cache('earthquakes', query_string, expiry)
-        if cache_return is not None and cache_return != 'expired':
-            if self.debug_mode:
-                print(f"Earthquake cache hit for query: {query_string}")
-            return cache_return
-        elif cache_return == 'expired':
-            if self.debug_mode:
-                print(f"Earthquake cache expired for query: {query_string}")
-
         quake_url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?{query_string}"
-        response = requests.get(quake_url, headers=self.headers, timeout=10)
-        data = response.json()
-        if self.debug_mode:
-            print(f"Earthquake data: {data}")
-            print('Response code: ', response.status_code)
+        return self._execute_request(quake_url, expiry=expiry, cache_category='earthquakes', cache_key=query_string)
 
-        try:
-            self.set_cache('earthquakes', query_string, data, expiry)
-        except Exception:
-            pass
-
-        return data
        
