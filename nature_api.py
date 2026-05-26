@@ -7,15 +7,16 @@ from Url_encode import url_encode
 import machine
 import ntptime
 
-__version__ = "0.1.8"
+__version__ = "0.1.10"
 
 class Client:
-    def __init__(self, ssid, password, default_refresh=300, status_led_pin=None, debug_mode=False):
+    def __init__(self, ssid, password, default_refresh=300, status_led_pin=None, debug_mode=False, watchdog=None):
         self.ssid = ssid
         self.password = password
         self.default_refresh = default_refresh
         self.status_led_pin = status_led_pin
         self.ipgeolocation_api_key = None
+        self.watchdog = watchdog
         self.wifi_connected = False
         self.address = None
         self.location = None
@@ -41,6 +42,7 @@ class Client:
                     self.wifi_connected = True
                     break
                 tries -= 1
+                if self.watchdog: self.watchdog.feed()  # Feed the watchdog if configured
                 print('Waiting for Wi-Fi connection...')
                 time.sleep(1)
             # Check if connection is successful
@@ -59,7 +61,7 @@ class Client:
         for _ in range(max_retries):
             try:
                 print('Syncing time via NTP...')
-                ntptime.settime()
+                if self.watchdog: self.watchdog.feed()  # Feed the watchdog if configuredntptime.settime()
                 return True
             except Exception as e:
                 print("Error syncing time:", e)
@@ -68,6 +70,7 @@ class Client:
     
     def get_local_timezone_offset(self):
         try:
+            if self.watchdog: self.watchdog.feed()  # Feed the watchdog if configured
             response = requests.get(f"https://api.ipgeolocation.io/v3/timezone?apiKey={self.ipgeolocation_api_key}&ip=", headers=self.headers, timeout=10)
             if self.debug_mode:
                 print(f"Response: {response.content}")
@@ -86,6 +89,7 @@ class Client:
             raise ValueError("Location is not set.")
         
         try:
+            if self.watchdog: self.watchdog.feed()  # Feed the watchdog if configured
             if self.ipgeolocation_api_key: 
                 response = requests.get(f"https://api.ipgeolocation.io/v3/timezone?apiKey={self.ipgeolocation_api_key}&lat={self.location['latitude']}&long={self.location['longitude']}", headers=self.headers, timeout=10)
             else:        
@@ -116,6 +120,7 @@ class Client:
             headers = {
                 "User-Agent": "rp2"  # Add a custom user agent
             }
+            if self.watchdog: self.watchdog.feed()  # Feed the watchdog if configured
             response = requests.get(f"https://nominatim.openstreetmap.org/search?q={encoded_address}&format=json&limit=1", headers=self.headers, timeout=10)
             if self.debug_mode:
                 print(response.content)
@@ -199,7 +204,7 @@ class Client:
 
         if self.debug_mode:
             print(f"Requesting URL: {url}")
-
+        if self.watchdog: self.watchdog.feed()  # Feed the watchdog if configured
         response = requests.get(url, headers=self.headers, timeout=10)
         data = response.json()
         if self.debug_mode:
@@ -334,6 +339,97 @@ class Client:
             build_astronomy_url,
             parse_astronomy_response,
         )
+
+    def _request_hash(self, params):
+        if not isinstance(params, dict):
+            raise ValueError("params must be a dict")
+
+        normalized_items = sorted((str(k), str(v)) for k, v in params.items())
+        normalized = "&".join(f"{k}={v}" for k, v in normalized_items)
+
+        h = 2166136261
+        for ch in normalized:
+            h ^= ord(ch)
+            h = (h * 16777619) & 0xFFFFFFFF
+
+        return "{:08x}".format(h)
+
+    def _load_earthquake_id_map(self, filename):
+        mapping = {}
+        try:
+            with open(filename, "r") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line or "=" not in line:
+                        continue
+                    hash_key, quake_id = line.split("=", 1)
+                    mapping[hash_key] = quake_id
+        except OSError:
+            pass
+        return mapping
+
+    def _save_earthquake_id_map(self, filename, mapping):
+        try:
+            with open(filename, "w") as fh:
+                for hash_key, quake_id in sorted(mapping.items()):
+                    fh.write(f"{hash_key}={quake_id}\n")
+        except OSError as e:
+            if self.debug_mode:
+                print("Error saving earthquake ID map:", e)
+
+    def _get_newest_earthquake(self, quake_data):
+        if not isinstance(quake_data, dict):
+            return None
+
+        features = quake_data.get("features")
+        if not isinstance(features, list) or not features:
+            return None
+
+        newest = None
+        newest_time = -1
+        for feature in features:
+            if not isinstance(feature, dict):
+                continue
+            props = feature.get("properties", {})
+            if not isinstance(props, dict):
+                continue
+            time_value = props.get("time")
+            if isinstance(time_value, (int, float)) and time_value > newest_time:
+                newest_time = time_value
+                newest = feature
+
+        return newest if newest is not None else features[0]
+
+    def get_new_earthquake(self, params, expiry=900, state_file="earthquake_ids.txt"):
+        if not self.wifi_connected:
+            raise ConnectionError("Wi-Fi is not connected.")
+
+        if not isinstance(params, dict):
+            raise ValueError("params must be a dict of USGS query parameters")
+
+        quake_data = self.get_earthquakes(params, expiry=expiry)
+        newest_feature = self._get_newest_earthquake(quake_data)
+        if not newest_feature:
+            return None
+
+        quake_id = newest_feature.get("id")
+        if not quake_id:
+            return None
+
+        query_hash = self._request_hash(params)
+        id_map = self._load_earthquake_id_map(state_file)
+        saved_id = id_map.get(query_hash)
+
+        if saved_id == quake_id:
+            return None
+
+        id_map[query_hash] = quake_id
+        self._save_earthquake_id_map(state_file, id_map)
+
+        if saved_id is None:
+            return None
+
+        return quake_data
 
     def get_earthquakes(self, params, expiry=900):
         if not self.wifi_connected:

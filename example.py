@@ -131,6 +131,42 @@ try:
         eq_time_str = f"{eq_time[0]}-{eq_time[1]:02}-{eq_time[2]:02} {eq_time[3]:02}:{eq_time[4]:02}:{eq_time[5]:02} UTC"
         print(f" - Magnitude {eq['properties']['mag']} earthquake at {eq_time_str}, location: {eq['properties']['place']}")
 
+    # Get new earthquakes (only returns data when a new earthquake is detected matching the query parameters)
+    # First call stores the current newest earthquake ID, returns None
+    # Subsequent calls return None if the newest earthquake hasn't changed
+    # Returns earthquake data only when a new (more recent) earthquake is found
+    new_eq_params = {
+        "minmagnitude": 1.0,
+        "orderby": "time",
+        "limit": 10
+    }
+    print("\nChecking for new earthquakes (magnitude 1.0+)...")
+    new_earthquakes = client.get_new_earthquake(new_eq_params)
+    if new_earthquakes:
+        print(f"New earthquakes detected! {len(new_earthquakes.get('features', []))} found")
+        for eq in new_earthquakes.get("features", [])[:3]:  # Show first 3
+            eq_time = time.gmtime(int(eq["properties"]["time"] / 1000))
+            eq_time_str = f"{eq_time[0]}-{eq_time[1]:02}-{eq_time[2]:02} {eq_time[3]:02}:{eq_time[4]:02}:{eq_time[5]:02} UTC"
+            print(f" - Magnitude {eq['properties']['mag']} earthquake at {eq_time_str}, location: {eq['properties']['place']}")
+    else:
+        print("No new earthquakes detected (stored ID matches current newest)")
+
+        new_eq_params = {
+        "minmagnitude": 2.5,
+        "orderby": "time",
+        "limit": 10
+    }
+    print("\nChecking for new earthquakes (magnitude 2.5+)...")
+    new_earthquakes = client.get_new_earthquake(new_eq_params)
+    if new_earthquakes:
+        print(f"New earthquakes detected! {len(new_earthquakes.get('features', []))} found")
+        for eq in new_earthquakes.get("features", [])[:3]:  # Show first 3
+            eq_time = time.gmtime(int(eq["properties"]["time"] / 1000))
+            eq_time_str = f"{eq_time[0]}-{eq_time[1]:02}-{eq_time[2]:02} {eq_time[3]:02}:{eq_time[4]:02}:{eq_time[5]:02} UTC"
+            print(f" - Magnitude {eq['properties']['mag']} earthquake at {eq_time_str}, location: {eq['properties']['place']}")
+    else:
+        print("No new earthquakes detected (stored ID matches current newest)")
+
     # results = client.get_forecast("hourly", "temperature_2m")
     # print(f"Hourly temperatures at {client.get_address()} are:", end=" ")
     # for temp in results["temperature_2m"]:
