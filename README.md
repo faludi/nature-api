@@ -1,5 +1,11 @@
 The Nature API provides a live, realtime feed of natural phenomenon from around the world for use in DIY electronics projects. Our intent is to support easy creation of projects that calmly connect humans with nature, rather than those that simply increase our anxiety, or use numbers to numb our sense of wonder.
 
+Documentation
+-------------
+
+- `docs/API.md` — full API reference for all library methods and usage patterns
+- `docs/GettingStarted.md` — beginner-friendly guide with Wi-Fi setup, temperature lookup, astronomy, and earthquake examples
+
 Caching
 -------
 
