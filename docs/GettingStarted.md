@@ -1,14 +1,14 @@
 # Getting Started with Nature API
 
-This guide walks you through the simplest way to use `nature_api.py` on MicroPython. It is aimed at beginners who know the basics of MicroPython and Wi-Fi-enabled devices.
+This guide walks you through the simplest way to use `nature_api.py` on Raspberry Pi Pico 2 W with MicroPython. It is aimed at beginners who know the basics of MicroPython and Wi-Fi-enabled devices.
 
 ## 1. What you need
 
-- A MicroPython board with Wi-Fi support (ESP32, Raspberry Pi Pico W, etc.)
+- A Raspberry Pi Pico 2 W, running [MicroPython](https://micropython.org/download/RPI_PICO2_W/)
 - `nature_api.py` copied to the device
 - `Url_encode.py` copied to the device
 - `secrets.py` with your Wi-Fi and API credentials
-- A working Wi-Fi network
+- An ordinary Wi-Fi network (not "captive")
 
 ## 2. Create your `secrets.py`
 
@@ -20,7 +20,7 @@ WIFI_PASSWORD = "your-wifi-password"
 IPGEOLOCATION_API_KEY = "your-ipgeolocation-api-key"
 ```
 
-`IPGEOLOCATION_API_KEY` is needed only for astronomy queries.
+`IPGEOLOCATION_API_KEY` is needed only for astronomy queries and is freely available [here](https://app.ipgeolocation.io/signup).
 
 ## 3. Initialize the client and connect
 
@@ -46,7 +46,7 @@ Run this on your board and verify that Wi-Fi connects successfully.
 
 ## 4. Simple temperature lookup
 
-Now add a location and request the current temperature.
+Now add a location and request the current temperature. We use the temperature reading at ground level (2 meters)
 
 ```python
 client.set_location("350 Fifth Avenue, New York, NY")
@@ -59,7 +59,7 @@ print("Current temperature:", temperature, "°C")
 
 - `set_location()` converts the address to latitude/longitude
 - `get_forecast("current", "temperature_2m")` fetches current temperature from Open-Meteo
-- The result is a raw temperature value, not a dictionary
+- The result is a raw temperature value for simplicity, not a dictionary
 
 ## 5. Multiple forecast variables
 
@@ -76,6 +76,8 @@ print("Cloud cover:", results["cloud_cover"], "%")
 print("Wind speed:", results["wind_speed_10m"], "km/h")
 ```
 
+Note that for multiple variables, results are returned as a Python dictionary
+
 ### Alternative list syntax
 
 ```python
@@ -85,6 +87,8 @@ results = client.get_forecast(
 )
 print(results)
 ```
+
+This shows the raw dictionary.
 
 ## 6. Astronomy lookup
 
@@ -111,6 +115,7 @@ print("Sunrise:", astronomy["sunrise"])
 print("Sunset:", astronomy["sunset"])
 print("Moon illumination:", astronomy["moon_illumination_percentage"], "%")
 ```
+Note that for multiple variables, results are returned as a Python dictionary
 
 ## 7. Earthquake queries
 
@@ -145,6 +150,8 @@ quake_params = {
 results = client.get_earthquakes(quake_params)
 ```
 
+Earthquake results are always returned as a Python dictionary.
+
 ## 8. Getting new earthquakes only
 
 `get_new_earthquake()` helps you detect when a newer earthquake has occurred for the same query.
@@ -166,8 +173,8 @@ else:
 ### How it behaves
 
 - On first run, the library stores the newest earthquake ID and returns `None`
-- On later runs, it will return data only if the newest earthquake has changed
-- The result is stored in `earthquake_ids.txt` by default
+- On later runs, it will return data **only** if the newest earthquake has changed
+- Request tracking survives reboots, using a hashed filesystem database of newest IDs for each request, saved as `earthquake_ids.txt` by default
 
 ## 9. Full beginner example
 
