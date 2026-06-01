@@ -4,13 +4,13 @@ This document is the full API reference for `nature_api.py`. It covers every pub
 
 ## 1. Overview
 
-The Nature API library provides real-time natural phenomenon data for MicroPython projects, including:
+The Nature API library provides real-time natural phenomenon data for MicroPython projects on the Raspberry Pi Pico 2 W, including:
 
-- Weather forecasts from Open-Meteo (`get_forecast()`)
-- Astronomy data from IPGeolocation (`get_astronomy()`)
-- Earthquake data from USGS (`get_earthquakes()` and `get_new_earthquake()`)
+- Weather forecasts from [Open-Meteo](https://open-meteo.com) (`get_forecast()`)
+- Astronomy data from [IPGeolocation](https://ipgeolocation.io) (`get_astronomy()`)
+- Earthquake data from [USGS](https://earthquake.usgs.gov/fdsnws/event/1/) (`get_earthquakes()` and `get_new_earthquake()`)
 - Offline in-memory caching for repeated queries
-- Location geocoding using OpenStreetMap / Nominatim
+- Location geocoding using [OpenStreetMap](https://www.openstreetmap.org/) / Nominatim
 
 ## 2. Setup and installation
 
@@ -25,7 +25,6 @@ Copy `nature_api.py`, `Url_encode.py`, and `secrets.py` to your MicroPython devi
 ### Optional example files
 
 - `example.py`
-- `full_example.py`
 - `example responses/` — sample JSON responses for reference
 
 ### `secrets.py` structure
@@ -38,7 +37,7 @@ IPGEOLOCATION_API_KEY = "your-ipgeolocation-api-key"
 
 ## 3. Client initialization
 
-### `Client(ssid, password, default_refresh=300, status_led_pin=None, debug_mode=False, watchdog=None)`
+### `Client(ssid, password, default_refresh=300, debug_mode=False, watchdog=None)`
 
 Creates the API client.
 
@@ -46,9 +45,8 @@ Arguments:
 - `ssid`: Wi-Fi SSID string
 - `password`: Wi-Fi password string
 - `default_refresh`: default cache expiry in seconds (default `300`)
-- `status_led_pin`: optional MicroPython pin name/number for an activity LED
 - `debug_mode`: enable verbose logging when `True`
-- `watchdog`: optional watchdog object with a `feed()` method
+- `watchdog`: optional [watchdog](https://docs.micropython.org/en/latest/library/machine.WDT.html) object with a `feed()` method
 
 Example:
 
@@ -57,14 +55,13 @@ client = nature_api.Client(
     ssid,
     password,
     default_refresh=300,
-    status_led_pin="LED",
     debug_mode=False
 )
 ```
 
 ## 4. Connection and time helpers
 
-### `connect_wifi(attempts_per_cycle=10, max_attempts=10)`
+### `connect_wifi(attempts_per_cycle=10, max_cycles=10)`
 
 Connects to Wi-Fi using the provided credentials.
 
@@ -74,7 +71,7 @@ Returns:
 
 Notes:
 - `attempts_per_cycle` controls how many status checks are made per connection cycle
-- `max_attempts` controls how many cycles are attempted
+- `max_cycles` controls how many cycles are attempted
 
 ### `sync_time(max_retries=5)`
 
@@ -86,7 +83,7 @@ Returns:
 
 ### `set_timezone_from_location()`
 
-Sets `client.utc_offset` based on the current location.
+Sets `client.utc_offset` based on the currently selected remote location's longitude and latitude
 
 Requires:
 - `client.location` must be set
@@ -98,7 +95,7 @@ Behavior:
 
 ### `get_local_timezone_offset()`
 
-Fetches the local timezone offset from IP geolocation.
+Fetches the local timezone offset from IP geolocation using the local ip address of the device.
 
 Returns:
 - integer offset in seconds from UTC
@@ -140,9 +137,21 @@ Example return value:
 
 Returns the original address string provided to `set_location()`, or `None` if not set.
 
+Example return value:
+
+```python
+    "350 Fifth Avenue, New York, NY"
+```
+
 ### `get_remote_offset()`
 
 Returns `client.utc_offset`, the current timezone offset in seconds.
+
+Example return value:
+
+```python
+    "-1440"
+```
 
 ## 6. API key management
 
@@ -166,9 +175,9 @@ client.set_api_key("ipgeolocation", secrets.IPGEOLOCATION_API_KEY)
 Fetches weather forecast data from Open-Meteo.
 
 Arguments:
-- `category`: string; e.g. `"current"`, `"hourly"`, `"daily"`
-- `parameters`: string or list; one or more Open-Meteo parameter names
-- `forecast_days`: integer number of forecast days (default `1`)
+- `category`: string; forecast type, e.g. `"current"`, `"hourly"`, `"daily"`
+- `parameters`: string or list; one or more Open-Meteo parameter names (see 11. Reference Tables)
+- `forecast_days`: integer; number of forecast days (default `1`)
 - `expiry`: cache TTL in seconds (default `900`)
 
 Supported parameter inputs:
@@ -183,13 +192,13 @@ Return value:
 - single parameter: direct value
 - multiple parameters: dictionary of parameter values
 
-Example:
+Example: single parameter:
 
 ```python
 temp = client.get_forecast("current", "temperature_2m")
 ```
 
-Example response handling:
+Example: multiple parameter response handling:
 
 ```python
 results = client.get_forecast("current", "temperature_2m,cloud_cover,wind_speed_10m")
@@ -205,7 +214,7 @@ print(results["wind_speed_10m"])
 - parameter
 - current location
 
-If cached data exists and has not expired, the cached value will be returned.
+If cached data exists and has not expired, the cached value will be returned. This reduces redundant lookups.
 
 ## 8. Astronomy API
 
@@ -215,7 +224,7 @@ Fetches astronomy data using IPGeolocation.
 
 Arguments:
 - `category`: string; currently only `"astronomy"`
-- `parameter`: string or list; one or more astronomy fields
+- `parameter`: string or list; one or more astronomy fields (see 11. Reference Tables)
 - `expiry`: cache TTL in seconds (default `900`)
 
 Return value:
@@ -236,16 +245,6 @@ print(results["sunrise"])
 print(results["moonset"])
 ```
 
-### Astronomy parameters
-
-Common astronomy fields returned by IPGeolocation include:
-- `sunrise`
-- `sunset`
-- `moonrise`
-- `moonset`
-- `moon_illumination_percentage`
-- `moon_phase`
-
 ## 9. Earthquake API
 
 ### `get_earthquakes(params, expiry=900)`
@@ -253,7 +252,7 @@ Common astronomy fields returned by IPGeolocation include:
 Fetches earthquake data from the USGS event API.
 
 Arguments:
-- `params`: dictionary of USGS query parameters
+- `params`: dictionary of USGS query parameters (see 11. Reference Tables)
 - `expiry`: cache TTL in seconds (default `900`)
 
 Required:
@@ -388,6 +387,5 @@ params = {
 For working examples, see:
 
 - `example.py`
-- `full_example.py`
 
 These demonstrate the connection flow, forecast calls, astronomy queries, and earthquake queries.
