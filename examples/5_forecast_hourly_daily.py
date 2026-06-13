@@ -50,12 +50,12 @@ if location:
 
 try:
     # --- HOURLY FORECAST (Next 24 hours) ---
-    print("\n[4d] Hourly forecast (next 24 hours):")
+    print("\nHourly forecast (next 24 hours):")
     hourly_temps = client.get_forecast("hourly", "temperature_2m")
     print(f"  Hourly temperatures: {hourly_temps}")
 
     # --- DAILY FORECAST (7 days) ---
-    print("\n[4e] Daily forecast (7 days):")
+    print("\nDaily forecast (7 days):")
     daily_temps = client.get_forecast("daily", "temperature_2m_mean", forecast_days=7)
     print(f"  Daily high temperatures: {daily_temps}")
 

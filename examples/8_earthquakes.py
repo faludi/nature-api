@@ -59,7 +59,7 @@ except Exception as e:
 
 try:
     # --- EARTHQUAKES BY MAGNITUDE ---
-    print("\n[6a] Recent earthquakes magnitude 6.0+:")
+    print("\nRecent earthquakes magnitude 6.0+:")
     eq_params = {
         "minmagnitude": 6.0,
         "orderby": "time",
@@ -77,7 +77,7 @@ try:
         print(f"    • Magnitude {mag} at {time_str}: {place}")
 
     # --- EARTHQUAKES NEAR LOCATION ---
-    print("\n[6b] Earthquakes within 500 km of current location:")
+    print("\nEarthquakes within 500 km of current location:")
     location = client.get_location()
     if location:
         eq_params = {
@@ -99,7 +99,7 @@ try:
             print(f"    • Magnitude {mag}: {place} {distance}")
 
     # --- EARTHQUAKES BY DATE RANGE ---
-    print("\n[6c] Earthquakes in the past 7 days (all magnitudes):")
+    print("\nEarthquakes in the past 7 days (all magnitudes):")
     # MicroPython: use `time.time()` and `time.gmtime()` instead of `datetime` module
     now_ts = time.time()
     seven_days_ago_ts = now_ts - (7 * 24 * 60 * 60)

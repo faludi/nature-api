@@ -59,7 +59,7 @@ except Exception as e:
 
 try:
     # --- NEW EARTHQUAKE DETECTION (First Call) ---
-    print("\n[7a] Checking for new earthquakes (magnitude 4.0+) [First call]:")
+    print("\nChecking for new earthquakes (magnitude 4.0+) [First call]:")
     new_eq_params = {
         "minmagnitude": 4.0,
         "orderby": "time",
@@ -77,7 +77,7 @@ try:
     time.sleep(60)
 
     # --- CHECKING AGAIN (Would typically be called later) ---
-    print("\n[7b] Checking for new earthquakes again [Subsequent call]:")
+    print("\nChecking for new earthquakes again [Subsequent call]:")
     result = client.get_new_earthquake(new_eq_params)
     if result is None:
         print("  ℹ No new earthquakes since last check")

@@ -36,6 +36,7 @@ if client.sync_time():
 else:
     print("⚠ Time sync failed, using device time")
 
+
 # Set location by address (uses Nominatim/OpenStreetMap to geocode)
 # The address is converted to latitude/longitude automatically
 address = "350 Fifth Avenue, New York, NY"
@@ -50,7 +51,7 @@ if location:
 
 try:
     # --- CURRENT CONDITIONS (Single Parameter) ---
-    print("\n[4a] Current temperature (single parameter):")
+    print("\nCurrent temperature (single parameter):")
     temp = client.get_forecast("current", "temperature_2m")
     print(f"  Temperature: {temp}°C")
 

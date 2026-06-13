@@ -59,7 +59,7 @@ except Exception as e:
 
 try:
     # --- SINGLE ASTRONOMY PARAMETER ---
-    print("\n[5b] Multiple astronomy parameters:")
+    print("\nMultiple astronomy parameters:")
     params = ["moon_illumination_percentage", "sunrise", "sunset", "moonrise", "moonset"]
     results = client.get_astronomy("astronomy", params)
     print(f"  Sunrise:           {results['sunrise']}")

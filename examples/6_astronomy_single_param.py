@@ -59,7 +59,7 @@ except Exception as e:
 
 try:
     # --- SINGLE ASTRONOMY PARAMETER ---
-    print("\n[5a] Single astronomy parameter (moon illumination):")
+    print("\nSingle astronomy parameter (moon illumination):")
     moon_illumination = client.get_astronomy("astronomy", "moon_illumination_percentage")
     print(f"  Moon illumination: {moon_illumination}%")
 
