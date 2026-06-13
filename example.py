@@ -12,7 +12,7 @@ import time
 # INITIALIZATION & SETUP
 # ============================================================================
 
-version = "1.0.0"
+version = "1.0.1"
 DEBUG_MODE = False  # Set to True to see debug output from the client
 
 print(f"Starting Nature API client v{version} ...")
@@ -26,13 +26,11 @@ password = secrets.WIFI_PASSWORD
 # Parameters:
 #   - ssid: Wi-Fi network name
 #   - password: Wi-Fi password
-#   - default_refresh: default cache expiry in seconds (300 = 5 minutes)
 #   - status_led_pin: optional pin for status LED (set to None if not using)
 #   - debug_mode: enables verbose output for debugging
 client = nature_api.Client(
     ssid,
     password,
-    default_refresh=300,
     debug_mode=DEBUG_MODE
 )
 
@@ -132,11 +130,11 @@ try:
     # --- HOURLY FORECAST (Next 24 hours) ---
     print("\n[4d] Hourly forecast (next 24 hours):")
     hourly_temps = client.get_forecast("hourly", "temperature_2m")
-    print(f"  Hourly temperatures: {hourly_temps[:5]}...")  # Show first 5
+    print(f"  Hourly temperatures: {hourly_temps}")
 
     # --- DAILY FORECAST (7 days) ---
     print("\n[4e] Daily forecast (7 days):")
-    daily_temps = client.get_forecast("daily", "temperature_2m", forecast_days=7)
+    daily_temps = client.get_forecast("daily", "temperature_2m_mean", forecast_days=7)
     print(f"  Daily high temperatures: {daily_temps}")
 
     # --- CACHING DEMONSTRATION ---

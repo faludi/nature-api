@@ -7,13 +7,12 @@ from Url_encode import url_encode
 import machine
 import ntptime
 
-__version__ = "0.1.10"
+__version__ = "0.1.11"
 
 class Client:
-    def __init__(self, ssid, password, default_refresh=300, debug_mode=False, watchdog=None):
+    def __init__(self, ssid, password, debug_mode=False, watchdog=None):
         self.ssid = ssid
         self.password = password
-        self.default_refresh = default_refresh
         self.ipgeolocation_api_key = None
         self.watchdog = watchdog
         self.wifi_connected = False
