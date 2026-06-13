@@ -15,4 +15,4 @@ Usage notes:
 - `get_forecast(category, parameters, forecast_days=1, expiry=900)` — returns a single dictionary of results. The `expiry` parameter controls the TTL in seconds (default 900).
 - `get_astronomy(category, parameter, expiry=900)` — behaves similarly, with caching and the same `expiry` parameter.
 
-The cache is in-process only and is not persisted to disk.
+The cache is in-process only and is not persisted to disk. 
