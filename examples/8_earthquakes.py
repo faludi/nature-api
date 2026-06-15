@@ -90,7 +90,7 @@ try:
         results = client.get_earthquakes(eq_params)
         features = results.get("features", [])
         print(f"  Found: {len(features)} earthquakes within 500 km")
-        for eq in features[:3]:
+        for eq in features:
             props = eq["properties"]
             mag = props.get("mag", "?")
             place = props.get("place", "Unknown")
