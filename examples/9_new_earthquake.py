@@ -59,9 +59,9 @@ except Exception as e:
 
 try:
     # --- NEW EARTHQUAKE DETECTION (First Call) ---
-    print("\nChecking for new earthquakes (magnitude 4.0+) [First call]:")
+    print("\nChecking for new earthquakes (magnitude 1.0+) [First call]:")
     new_eq_params = {
-        "minmagnitude": 4.0,
+        "minmagnitude": 1.0,
         "orderby": "time",
         "limit": 10
     }

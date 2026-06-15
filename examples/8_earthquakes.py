@@ -68,7 +68,7 @@ try:
     results = client.get_earthquakes(eq_params)
     features = results.get("features", [])
     print(f"  Found: {len(features)} earthquakes")
-    for eq in features[:3]:  # Show first 3
+    for eq in features:
         props = eq["properties"]
         mag = props.get("mag", "?")
         place = props.get("place", "Unknown")
@@ -97,26 +97,6 @@ try:
             coords = eq["geometry"]["coordinates"]
             distance = "~" + str(int(props.get("distance", 0) / 1000)) + " km"
             print(f"    • Magnitude {mag}: {place} {distance}")
-
-    # --- EARTHQUAKES BY DATE RANGE ---
-    print("\nEarthquakes in the past 7 days (all magnitudes):")
-    # MicroPython: use `time.time()` and `time.gmtime()` instead of `datetime` module
-    now_ts = time.time()
-    seven_days_ago_ts = now_ts - (7 * 24 * 60 * 60)
-    now_struct = time.gmtime(now_ts)
-    seven_struct = time.gmtime(seven_days_ago_ts)
-    # Format YYYY-MM-DD for USGS API
-    today_str = "{:04d}-{:02d}-{:02d}".format(now_struct[0], now_struct[1], now_struct[2])
-    seven_days_ago = "{:04d}-{:02d}-{:02d}".format(seven_struct[0], seven_struct[1], seven_struct[2])
-    eq_params = {
-        "starttime": seven_days_ago,
-        "endtime": today_str,
-        "orderby": "magnitude",
-        "limit": 10
-    }
-    results = client.get_earthquakes(eq_params)
-    features = results.get("features", [])
-    print(f"  Found: {len(features)} earthquakes in past 7 days")
 
 except Exception as e:
     print(f"✗ Error fetching earthquake data: {e}")
