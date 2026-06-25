@@ -98,7 +98,7 @@ print("\n" + "="*70)
 print("SECTION 4: WEATHER FORECASTS (Open-Meteo)")
 print("="*70)
 
-# The get_forecast() method retrieves weather data from Open-Meteo API
+# The get_weather() method retrieves weather data from Open-Meteo API
 # Parameters:
 #   - category: "current", "hourly", "daily", "minutely_15"
 #   - parameters: string (comma-separated) or list of parameter names
@@ -110,41 +110,41 @@ print("="*70)
 try:
     # --- CURRENT CONDITIONS (Single Parameter) ---
     print("\n[4a] Current temperature (single parameter):")
-    temp = client.get_forecast("current", "temperature_2m")
+    temp = client.get_weather("current", "temperature_2m")
     print(f"  Temperature: {temp}°C")
 
     # --- CURRENT CONDITIONS (Multiple Parameters as String) ---
     print("\n[4b] Current conditions (multiple parameters as comma-separated string):")
-    results = client.get_forecast("current", "temperature_2m,cloud_cover,wind_speed_10m")
+    results = client.get_weather("current", "temperature_2m,cloud_cover,wind_speed_10m")
     print(f"  Temperature: {results['temperature_2m']}°C")
     print(f"  Cloud cover: {results['cloud_cover']}%")
     print(f"  Wind speed:  {results['wind_speed_10m']} km/h")
 
     # --- CURRENT CONDITIONS (Multiple Parameters as List) ---
     print("\n[4c] Current conditions (multiple parameters as list):")
-    results = client.get_forecast("current", ["temperature_2m", "wind_speed_10m", "relative_humidity_2m"])
+    results = client.get_weather("current", ["temperature_2m", "wind_speed_10m", "relative_humidity_2m"])
     print(f"  Temperature: {results['temperature_2m']}°C")
     print(f"  Wind speed:  {results['wind_speed_10m']} km/h")
     print(f"  Humidity:    {results['relative_humidity_2m']}%")
 
     # --- HOURLY FORECAST (Next 24 hours) ---
     print("\n[4d] Hourly forecast (next 24 hours):")
-    hourly_temps = client.get_forecast("hourly", "temperature_2m")
+    hourly_temps = client.get_weather("hourly", "temperature_2m")
     print(f"  Hourly temperatures: {hourly_temps}")
 
     # --- DAILY FORECAST (7 days) ---
     print("\n[4e] Daily forecast (7 days):")
-    daily_temps = client.get_forecast("daily", "temperature_2m_mean", forecast_days=7)
+    daily_temps = client.get_weather("daily", "temperature_2m_mean", forecast_days=7)
     print(f"  Daily high temperatures: {daily_temps}")
 
     # --- CACHING DEMONSTRATION ---
     # Data is cached by default. Short expiry shows how cache works.
     print("\n[4f] Caching demonstration:")
     print("  First request (will fetch from API)...")
-    results1 = client.get_forecast("current", "temperature_2m", expiry=60)
+    results1 = client.get_weather("current", "temperature_2m", expiry=60)
     time.sleep(0.5)
     print("  Second request (will use cache)...")
-    results2 = client.get_forecast("current", "temperature_2m", expiry=60)
+    results2 = client.get_weather("current", "temperature_2m", expiry=60)
     if results1 == results2:
         print("  ✓ Cache working correctly (values identical)")
 
@@ -334,8 +334,8 @@ try:
     for city, address in locations.items():
         print(f"\n  Setting location to: {city}")
         client.set_location(address)
-        temp = client.get_forecast("current", "temperature_2m")
-        wind = client.get_forecast("current", "wind_speed_10m")
+        temp = client.get_weather("current", "temperature_2m")
+        wind = client.get_weather("current", "wind_speed_10m")
         print(f"    Temperature: {temp}°C, Wind: {wind} km/h")
 
 except Exception as e:
@@ -352,7 +352,7 @@ try:
     # Create a new client without setting location
     test_client = nature_api.Client(ssid, password, debug_mode=False)
     test_client.wifi_connected = True  # Simulate connection
-    test_client.get_forecast("current", "temperature_2m")
+    test_client.get_weather("current", "temperature_2m")
 except ValueError as e:
     print(f"  ✓ Caught expected error: {e}")
 

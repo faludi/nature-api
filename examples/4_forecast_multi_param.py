@@ -51,7 +51,7 @@ if location:
 try:
         # --- CURRENT CONDITIONS (Multiple Parameters as String) ---
     print("\nCurrent conditions (multiple parameters as comma-separated string):")
-    results = client.get_forecast("current", "temperature_2m,cloud_cover,wind_speed_10m")
+    results = client.get_weather("current", "temperature_2m,cloud_cover,wind_speed_10m")
     print(f"  Temperature: {results['temperature_2m']}°C")
     print(f"  Cloud cover: {results['cloud_cover']}%")
     print(f"  Wind speed:  {results['wind_speed_10m']} km/h")

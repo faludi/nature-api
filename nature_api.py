@@ -248,7 +248,7 @@ class Client:
         return self.utc_offset
 
     
-    def get_forecast(self, category, parameters, forecast_days=1, expiry=900):
+    def get_weather(self, category, parameters, forecast_days=1, expiry=900):
         if not self.wifi_connected:
             raise ConnectionError("Wi-Fi is not connected.")
         
@@ -258,7 +258,7 @@ class Client:
         location = self.location
         assert location is not None
 
-        def build_forecast_url(params_to_fetch):
+        def build_weather_url(params_to_fetch):
             params_fetch_string = ",".join(params_to_fetch)
             return (
                 f"https://api.open-meteo.com/v1/forecast?latitude={location['latitude']}"
@@ -266,7 +266,7 @@ class Client:
                 f"&forecast_days={forecast_days}"
             )
 
-        def parse_forecast_response(data, params_to_fetch):
+        def parse_weather_response(data, params_to_fetch):
             if isinstance(data, dict):
                 category_data = data.get(category)
             else:
@@ -282,10 +282,14 @@ class Client:
             category,
             parameters,
             expiry,
-            build_forecast_url,
-            parse_forecast_response,
+            build_weather_url,
+            parse_weather_response,
         )
     
+    def get_forecast(self, category, parameters, forecast_days=1, expiry=900):
+        print(('"get_forecast" is deprecated, use "get_weather" instead.'))
+        return self.get_weather(category, parameters, forecast_days=forecast_days, expiry=expiry)
+
     def set_api_key(self, type, key):
         if type == "ipgeolocation":
             self.ipgeolocation_api_key = key

@@ -52,7 +52,7 @@ if location:
 try:
     # --- CURRENT CONDITIONS (Single Parameter) ---
     print("\nCurrent temperature (single parameter):")
-    temp = client.get_forecast("current", "temperature_2m")
+    temp = client.get_weather("current", "temperature_2m")
     print(f"  Temperature: {temp}°C")
 
 except Exception as e:
