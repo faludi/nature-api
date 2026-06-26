@@ -6,7 +6,8 @@ This document is the full API reference for `nature_api.py`. It covers every pub
 
 The Nature API library provides real-time natural phenomenon data for MicroPython projects on the Raspberry Pi Pico 2 W, including:
 
-- Weather forecasts from [Open-Meteo](https://open-meteo.com) (`get_forecast()`)
+- Weather forecasts from [Open-Meteo](https://open-meteo.com) (`get_weather()`)
+- Marine/ocean conditions from [Open-Meteo Marine](https://open-meteo.com/en/docs/marine-weather-api) (`get_marine()`)
 - Astronomy data from [IPGeolocation](https://ipgeolocation.io) (`get_astronomy()`)
 - Earthquake data from [USGS](https://earthquake.usgs.gov/fdsnws/event/1/) (`get_earthquakes()` and `get_new_earthquake()`)
 - Offline in-memory caching for repeated queries
@@ -120,6 +121,24 @@ Example:
 client.set_location("350 Fifth Avenue, New York, NY")
 ```
 
+### `set_coordinates(latitude, longitude)`
+
+Sets the query location directly using latitude and longitude.
+
+Arguments:
+- `latitude`: floating-point latitude value
+- `longitude`: floating-point longitude value
+
+Behavior:
+- Stores `client.location` as a dictionary with `latitude` and `longitude`
+- Useful for marine/ocean queries, where address lookups are not meaningful
+
+Example:
+
+```python
+client.set_coordinates(40.569560, -73.983300)
+```
+
 ### `get_location()`
 
 Returns the current location dictionary, or `None` if no location is set.
@@ -170,7 +189,7 @@ client.set_api_key("ipgeolocation", secrets.IPGEOLOCATION_API_KEY)
 
 ## 7. Forecast API
 
-### `get_forecast(category, parameters, forecast_days=1, expiry=900)`
+### `get_weather(category, parameters, forecast_days=1, expiry=900)`
 
 Fetches weather forecast data from Open-Meteo.
 
@@ -195,13 +214,13 @@ Return value:
 Example: single parameter:
 
 ```python
-temp = client.get_forecast("current", "temperature_2m")
+temp = client.get_weather("current", "temperature_2m")
 ```
 
 Example: multiple parameter response handling:
 
 ```python
-results = client.get_forecast("current", "temperature_2m,cloud_cover,wind_speed_10m")
+results = client.get_weather("current", "temperature_2m,cloud_cover,wind_speed_10m")
 print(results["temperature_2m"])
 print(results["cloud_cover"])
 print(results["wind_speed_10m"])
@@ -209,14 +228,65 @@ print(results["wind_speed_10m"])
 
 ### Caching behavior
 
-`get_forecast()` uses an in-memory TTL cache keyed by:
+`get_weather()` uses an in-memory TTL cache keyed by:
 - category
 - parameter
 - current location
 
 If cached data exists and has not expired, the cached value will be returned. This reduces redundant lookups.
 
-## 8. Astronomy API
+## 8. Marine API
+
+### `get_marine(category, parameters, forecast_days=1, expiry=900)`
+
+Fetches marine/ocean weather data from the Open-Meteo Marine API.
+
+Arguments:
+- `category`: string; marine forecast type, e.g. `"current"`, `"hourly"`, `"daily"`
+- `parameters`: string or list; one or more marine parameter names
+- `forecast_days`: integer; number of forecast days (default `1`)
+- `expiry`: cache TTL in seconds (default `900`)
+
+Supported parameter inputs:
+- single parameter string: `"wave_height"`
+- comma-separated string: `"wave_height,sea_level_height_msl,sea_surface_temperature"`
+- list of strings: `["wave_height", "sea_level_height_msl"]`
+
+Return value:
+- single parameter: direct value
+- multiple parameters: dictionary of parameter values
+
+Example: single parameter:
+
+```python
+client.set_coordinates(40.569560, -73.983300)
+wave_height = client.get_marine("current", "wave_height")
+```
+
+Example: multiple parameters:
+
+```python
+results = client.get_marine(
+    "current",
+    "wave_height,sea_level_height_msl,sea_surface_temperature"
+)
+print(results["wave_height"])
+print(results["sea_level_height_msl"])
+print(results["sea_surface_temperature"])
+```
+
+Example: hourly and daily forecasts:
+
+```python
+hourly = client.get_marine("hourly", "sea_level_height_msl")
+daily = client.get_marine("daily", "wave_height_max", forecast_days=7)
+```
+
+### Caching behavior
+
+`get_marine()` uses the same in-memory TTL cache behavior as `get_weather()`.
+
+## 9. Astronomy API
 
 ### `get_astronomy(category, parameter, expiry=900)`
 
@@ -245,7 +315,7 @@ print(results["sunrise"])
 print(results["moonset"])
 ```
 
-## 9. Earthquake API
+## 10. Earthquake API
 
 ### `get_earthquakes(params, expiry=900)`
 
@@ -318,7 +388,7 @@ Notes:
 - First run stores the newest earthquake ID and returns `None`
 - The `state_file` is created on the device if needed
 
-## 10. Error handling and debug mode
+## 11. Error handling and debug mode
 
 Common errors:
 - `ConnectionError`: Wi-Fi is not connected before calling a network method
@@ -332,7 +402,7 @@ Enable debug mode with `debug_mode=True` to print:
 - cache activity
 - internal error diagnostics
 
-## 11. Reference tables
+## 12. Reference tables
 
 ### Forecast parameter examples
 
@@ -382,7 +452,7 @@ params = {
 }
 ```
 
-## 12. Example scripts
+## 13. Example scripts
 
 For working examples, see:
 

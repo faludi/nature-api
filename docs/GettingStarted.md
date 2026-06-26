@@ -51,14 +51,14 @@ Now add a location and request the current temperature. We use the temperature r
 ```python
 client.set_location("350 Fifth Avenue, New York, NY")
 
-temperature = client.get_forecast("current", "temperature_2m")
+temperature = client.get_weather("current", "temperature_2m")
 print("Current temperature:", temperature, "°C")
 ```
 
 ### What this does
 
 - `set_location()` converts the address to latitude/longitude
-- `get_forecast("current", "temperature_2m")` fetches current temperature from Open-Meteo
+- `get_weather("current", "temperature_2m")` fetches current temperature from Open-Meteo
 - The result is a raw temperature value for simplicity, not a dictionary
 
 ## 5. Multiple forecast variables
@@ -66,7 +66,7 @@ print("Current temperature:", temperature, "°C")
 Use multiple parameters to read several weather values at once.
 
 ```python
-results = client.get_forecast(
+results = client.get_weather(
     "current",
     "temperature_2m,cloud_cover,wind_speed_10m"
 )
@@ -81,7 +81,7 @@ Note that for multiple variables, results are returned as a Python dictionary
 ### Alternative list syntax
 
 ```python
-results = client.get_forecast(
+results = client.get_weather(
     "current",
     ["temperature_2m", "wind_speed_10m"]
 )
@@ -90,7 +90,39 @@ print(results)
 
 This shows the raw dictionary.
 
-## 6. Astronomy lookup
+## 6. Marine/ocean data lookup
+
+For ocean or coastal data, use coordinates instead of an address because there are no human-readable addresses on the open water.
+
+```python
+client.set_coordinates(40.569560, -73.983300)
+
+wave_height = client.get_marine("current", "wave_height")
+print("Current wave height:", wave_height, "m")
+```
+
+### Multiple marine values
+
+```python
+marine = client.get_marine(
+    "current",
+    "wave_height,sea_level_height_msl,sea_surface_temperature"
+)
+print("Wave height:", marine["wave_height"], "m")
+print("Sea level:", marine["sea_level_height_msl"], "m")
+print("Sea temperature:", marine["sea_surface_temperature"], "°C")
+```
+
+### Hourly and daily marine forecasts
+
+```python
+hourly = client.get_marine("hourly", "sea_level_height_msl")
+daily = client.get_marine("daily", "wave_height_max", forecast_days=7)
+print("Hourly sea level:", hourly)
+print("Daily wave height max:", daily)
+```
+
+## 7. Astronomy lookup
 
 Set the astronomy API key and request a single astronomy value.
 
@@ -117,7 +149,7 @@ print("Moon illumination:", astronomy["moon_illumination_percentage"], "%")
 ```
 Note that for multiple variables, results are returned as a Python dictionary
 
-## 7. Earthquake queries
+## 8. Earthquake queries
 
 Request recent earthquakes using USGS query parameters.
 
@@ -152,7 +184,7 @@ results = client.get_earthquakes(quake_params)
 
 Earthquake results are always returned as a Python dictionary.
 
-## 8. Getting new earthquakes only
+## 9. Getting new earthquakes only
 
 `get_new_earthquake()` helps you detect when a newer earthquake has occurred for the same query.
 
@@ -176,7 +208,7 @@ else:
 - On later runs, it will return data **only** if the newest earthquake has changed
 - Request tracking survives reboots, using a hashed filesystem database of newest IDs for each request, saved as `earthquake_ids.txt` by default
 
-## 9. Full beginner example
+## 10. Full beginner example
 
 ```python
 import time
@@ -196,10 +228,15 @@ client.set_api_key("ipgeolocation", secrets.IPGEOLOCATION_API_KEY)
 client.set_location("350 Fifth Avenue, New York, NY")
 
 # Temperature lookup
-print("Current temperature:", client.get_forecast("current", "temperature_2m"), "°C")
+print("Current temperature:", client.get_weather("current", "temperature_2m"), "°C")
+
+# Marine lookup
+client.set_coordinates(40.569560, -73.983300)
+wave_height = client.get_marine("current", "wave_height")
+print("Current wave height:", wave_height, "m")
 
 # Multiple forecast variables
-weather = client.get_forecast(
+weather = client.get_weather(
     "current",
     "temperature_2m,cloud_cover,wind_speed_10m"
 )
@@ -222,14 +259,14 @@ quakes = client.get_earthquakes(quake_params)
 print("Earthquakes found:", len(quakes.get("features", [])))
 ```
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 - If Wi-Fi does not connect, verify `WIFI_SSID` and `WIFI_PASSWORD` in `secrets.py`.
-- If `get_forecast()` raises `ValueError`, make sure `set_location()` has been called.
+- If `get_weather()` raises `ValueError`, make sure `set_location()` has been called.
 - If `get_astronomy()` raises `ValueError`, make sure `set_api_key("ipgeolocation", ...)` has been called.
 - If earthquake queries fail, ensure `params` is a dictionary and includes at least one parameter.
 
-## 11. Next steps
+## 12. Next steps
 
 - Try `forecast_days=7` for a week-long daily forecast
 - Use `hourly` category to fetch hourly forecasts
