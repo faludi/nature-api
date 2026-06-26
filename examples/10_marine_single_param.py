@@ -36,34 +36,25 @@ if client.sync_time():
 else:
     print("⚠ Time sync failed, using device time")
 
-# Set location by address (uses Nominatim/OpenStreetMap to geocode)
-# The address is converted to latitude/longitude automatically
-address = "350 Fifth Avenue, New York, NY"
-print(f"Setting location to: {address}")
-client.set_location(address)
-print(f"✓ Location set to: {client.get_address()}")
+# Set location by coordinates (no address lookups in the ocean, so we use lat/lon directly)
+# The coordinates are for the end of Coney Island's Steeplechase Pier, Brooklyn, New York, USA
+latitude = 40.569560
+longitude = -73.983300
+client.set_coordinates(latitude, longitude)
 
 location = client.get_location()
 if location:
     print(f"  Latitude:  {location['latitude']}")
     print(f"  Longitude: {location['longitude']}")
 
-## Set timezone based on the coordinates
-client.set_timezone_from_location()
-
 try:
-    # --- HOURLY FORECAST (Next 24 hours) ---
-    print("\nHourly forecast (next 24 hours):")
-    hourly_temps = client.get_weather("hourly", "temperature_2m")
-    print(f"  Hourly temperatures: {hourly_temps}")
-
-    # --- DAILY FORECAST (7 days) ---
-    print("\nDaily forecast (7 days):")
-    daily_temps = client.get_weather("daily", "temperature_2m_mean", forecast_days=7)
-    print(f"  Daily high temperatures: {daily_temps}")
+    # --- CURRENT CONDITIONS (Single Parameter) ---
+    print("\nCurrent wave height (single parameter):")
+    wave_height = client.get_marine("current", "wave_height")
+    print(f"  Wave Height: {wave_height} m")
 
 except Exception as e:
-    print(f"✗ Error fetching forecast data: {e}")
+    print(f"✗ Error fetching marine data: {e}")
 
 
 print("")

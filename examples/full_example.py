@@ -12,7 +12,7 @@ import time
 # INITIALIZATION & SETUP
 # ============================================================================
 
-version = "1.0.1"
+version = "1.1.0"
 DEBUG_MODE = False  # Set to True to see debug output from the client
 
 print(f"Starting Nature API client v{version} ...")
@@ -316,7 +316,63 @@ except Exception as e:
     print(f"✗ Error with new earthquake detection: {e}")
 
 print("\n" + "="*70)
-print("SECTION 8: LOCATION SWITCHING")
+print("SECTION 8: MARINE DATA (Ocean Weather)")
+print("="*70)
+
+# The get_marine() method retrieves marine/ocean weather data
+# Parameters:
+#   - category: "current", "hourly", "daily"
+#   - parameters: string (comma-separated) or list of parameter names
+#   - forecast_days: number of days to forecast (default 1)
+#   - expiry: cache duration in seconds
+#
+# Marine data uses coordinates (latitude/longitude) rather than addresses
+# since there are no addresses in the ocean
+
+try:
+    # Set location by coordinates for ocean data
+    # The coordinates are for the end of Coney Island's Steeplechase Pier, Brooklyn, New York, USA
+    print("\n[8a] Setting location by coordinates (ocean location):")
+    latitude = 40.569560
+    longitude = -73.983300
+    client.set_coordinates(latitude, longitude)
+
+    location = client.get_location()
+    if location:
+        print(f"  Latitude:  {location['latitude']}")
+        print(f"  Longitude: {location['longitude']}")
+
+    # --- CURRENT CONDITIONS (Single Parameter) ---
+    print("\n[8b] Current wave height (single parameter):")
+    wave_height = client.get_marine("current", "wave_height")
+    print(f"  Wave Height: {wave_height} m")
+
+    # --- CURRENT CONDITIONS (Multiple Parameters) ---
+    print("\n[8c] Current marine conditions (multiple parameters):")
+    results = client.get_marine("current", "wave_height,sea_level_height_msl,sea_surface_temperature")
+    print(f"  Wave Height: {results['wave_height']} m")
+    print(f"  Sea Level Height (MSL): {results['sea_level_height_msl']} m")
+    print(f"  Sea Surface Temperature: {results['sea_surface_temperature']}°C")
+
+    # Set timezone based on the coordinates
+    print("\n[8d] Setting timezone from coordinates...")
+    client.set_timezone_from_location()
+
+    # --- HOURLY FORECAST (Next 24 hours) ---
+    print("\n[8e] Hourly marine forecast (next 24 hours):")
+    hourly_data = client.get_marine("hourly", "sea_level_height_msl")
+    print(f"  Hourly sea level heights: {hourly_data}")
+
+    # --- DAILY FORECAST (7 days) ---
+    print("\n[8f] Daily marine forecast (7 days):")
+    daily_data = client.get_marine("daily", "wave_height_max", forecast_days=7)
+    print(f"  Daily wave height max: {daily_data}")
+
+except Exception as e:
+    print(f"✗ Error fetching marine data: {e}")
+
+print("\n" + "="*70)
+print("SECTION 9: LOCATION SWITCHING")
 print("="*70)
 
 # You can switch locations and query data for different places
@@ -330,7 +386,7 @@ try:
         "Tokyo": "Tokyo, Japan"
     }
 
-    print("\n[8a] Weather comparison across locations:")
+    print("\n[9a] Weather comparison across locations:")
     for city, address in locations.items():
         print(f"\n  Setting location to: {city}")
         client.set_location(address)
@@ -342,12 +398,12 @@ except Exception as e:
     print(f"✗ Error switching locations: {e}")
 
 print("\n" + "="*70)
-print("SECTION 9: ERROR HANDLING")
+print("SECTION 10: ERROR HANDLING")
 print("="*70)
 
 # Examples of error conditions and how to handle them
 
-print("\n[9a] Missing location (forecast requires location):")
+print("\n[10a] Missing location (forecast requires location):")
 try:
     # Create a new client without setting location
     test_client = nature_api.Client(ssid, password, debug_mode=False)
@@ -356,13 +412,13 @@ try:
 except ValueError as e:
     print(f"  ✓ Caught expected error: {e}")
 
-print("\n[9b] Invalid earthquake parameters:")
+print("\n[10b] Invalid earthquake parameters:")
 try:
     client.get_earthquakes("invalid")  # Should be a dict
 except ValueError as e:
     print(f"  ✓ Caught expected error: {e}")
 
-print("\n[9c] Astronomy without API key:")
+print("\n[10c] Astronomy without API key:")
 try:
     test_client = nature_api.Client(ssid, password, debug_mode=False)
     test_client.wifi_connected = True
@@ -387,7 +443,9 @@ This example demonstrated all major features of the nature_api library:
 7. ✓ Astronomy data queries
 8. ✓ Earthquake data queries
 9. ✓ New earthquake detection with state tracking
-10. ✓ Error handling and exceptions
+10. ✓ Marine/ocean weather data (current, hourly, daily)
+11. ✓ Location switching
+12. ✓ Error handling and exceptions
 
 For more information:
 - Open-Meteo (weather): https://open-meteo.com/

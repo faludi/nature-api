@@ -7,7 +7,7 @@ from Url_encode import url_encode
 import machine
 import ntptime
 
-__version__ = "0.1.12"
+__version__ = "0.1.13"
 
 class Client:
     def __init__(self, ssid, password, debug_mode=False, watchdog=None):
@@ -134,6 +134,12 @@ class Client:
                 raise ValueError("Location not found")
         except Exception as e:
             print('Error fetching location data:', e)
+
+    def set_coordinates(self, latitude, longitude):
+        self.location = {
+            "latitude": latitude,
+            "longitude": longitude
+        }
 
     def _cache_key(self, category, parameter):
         """Create a cache key that includes category, parameter and current location.
@@ -289,6 +295,44 @@ class Client:
     def get_forecast(self, category, parameters, forecast_days=1, expiry=900):
         print(('"get_forecast" is deprecated, use "get_weather" instead.'))
         return self.get_weather(category, parameters, forecast_days=forecast_days, expiry=expiry)
+    
+    def get_marine(self, category, parameters, forecast_days=1, expiry=900):
+        if not self.wifi_connected:
+            raise ConnectionError("Wi-Fi is not connected.")
+        
+        if not self.location:
+            raise ValueError("Location is not set.")
+
+        location = self.location
+        assert location is not None
+
+        def build_marine_url(params_to_fetch):
+            params_fetch_string = ",".join(params_to_fetch)
+            return (
+                f"https://marine-api.open-meteo.com/v1/marine?latitude={location['latitude']}"
+                f"&longitude={location['longitude']}&{category}={params_fetch_string}"
+                f"&forecast_days={forecast_days}"
+            )
+
+        def parse_marine_response(data, params_to_fetch):
+            if isinstance(data, dict):
+                category_data = data.get(category)
+            else:
+                category_data = None
+            return {
+                parameter: category_data[parameter]
+                if isinstance(category_data, dict) and parameter in category_data
+                else None
+                for parameter in params_to_fetch
+            }
+
+        return self._execute_parameterized_request(
+            category,
+            parameters,
+            expiry,
+            build_marine_url,
+            parse_marine_response,
+        )
 
     def set_api_key(self, type, key):
         if type == "ipgeolocation":
