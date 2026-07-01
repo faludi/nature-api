@@ -16,3 +16,43 @@ Usage notes:
 - `get_astronomy(category, parameter, expiry=900)` — behaves similarly, with caching and the same `expiry` parameter.
 
 The cache is in-process only and is not persisted to disk. 
+
+Examples
+--------
+
+Simple usage examples (Python):
+
+```python
+from nature_api import Client
+
+client = Client('myssid', 'mypassword')
+client.wifi_connected = True
+client.set_coordinates(51.5, -0.12)
+
+# Weather: request temperature 'value'
+temp = client.get_weather('temperature', 'value')
+print('Temperature:', temp)
+
+# Marine: request wave height
+waves = client.get_marine('waves', 'height')
+print('Wave height:', waves)
+
+# Astronomy (requires API key)
+client.set_api_key('ipgeolocation', 'YOUR_KEY')
+sunrise = client.get_astronomy('sun', 'sunrise')
+print('Sunrise local time:', sunrise)
+
+# Earthquakes: pass a USGS query dict
+quakes = client.get_earthquakes({'starttime': '2020-01-01'})
+print('Quakes response keys:', list(quakes.keys()))
+```
+
+Tests
+-----
+
+Run the tests with pytest from the repository root:
+
+```bash
+pip install pytest
+pytest -q
+```
