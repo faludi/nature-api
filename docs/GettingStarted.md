@@ -44,6 +44,31 @@ print("Wi-Fi connected")
 
 Run this on your board and verify that Wi-Fi connects successfully.
 
+### Optional: set up Wi-Fi from a phone
+
+If the device has no saved Wi-Fi details, or the network has changed, `provision_wifi()` lets the user enter new ones from a phone or laptop. The device starts its own access point and serves a setup page.
+
+```python
+try:
+    ssid, password = client.provision_wifi(ap_ssid="NatureAPI-Setup")
+except nature_api.WifiConnectError:
+    print("Could not connect with the submitted credentials")
+except nature_api.WifiProvisioningTimeout:
+    print("Setup timed out")
+```
+
+1. Join the `NatureAPI-Setup` network from your phone. The setup page usually opens by itself; otherwise browse to `http://192.168.4.1/`.
+2. Choose a network from the list or type its name, then enter the password (8-63 characters, or blank for an open network). Tick "Show password" to check what you typed.
+3. On success the device stays connected and the function returns `(ssid, password)`. Your program is responsible for saving them, for example in `secrets.py`. See `examples/13_wifi_provisioning.py`.
+
+Notes:
+- A wrong password raises `WifiConnectError`. Pass `max_attempts=3` to let the user retry on the page first.
+- Setup ends after 5 minutes (`timeout=300`) with `WifiProvisioningTimeout`.
+- Set `ap_password="at-least-8-chars"` to protect the setup network. By default it is open.
+- `client.connect_wifi(provision_on_failure=True)` starts setup automatically instead of resetting the device when the saved network fails.
+- `on_status` takes a function called with `ap_started`, `connecting`, `failed`, `success` or `timeout`, for example to blink an LED.
+- The setup page uses plain HTTP, so use an AP password if others are nearby.
+
 ## 4. Simple temperature lookup
 
 Now add a location and request the current temperature. We use the temperature reading at ground level (2 meters)

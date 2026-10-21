@@ -62,17 +62,37 @@ client = nature_api.Client(
 
 ## 4. Connection and time helpers
 
-### `connect_wifi(attempts_per_cycle=10, max_cycles=10)`
+### `connect_wifi(attempts_per_cycle=10, max_cycles=10, provision_on_failure=False)`
 
 Connects to Wi-Fi using the provided credentials.
 
 Returns:
 - `True` on successful connection
-- Resets the device using `machine.reset()` if the connection cannot be established after the specified attempts
+- Resets the device using `machine.reset()` if the connection cannot be established after the specified attempts, unless `provision_on_failure=True`
 
 Notes:
 - `attempts_per_cycle` controls how many status checks are made per connection cycle
 - `max_cycles` controls how many cycles are attempted
+- With `provision_on_failure=True`, `provision_wifi()` runs instead of resetting; its exceptions propagate
+
+### `provision_wifi(ap_ssid="NatureAPI-Setup", ap_password=None, timeout=300, max_attempts=1, on_status=None)`
+
+Starts an access point with a captive-portal setup page where the user enters a Wi-Fi network name and password.
+
+Returns:
+- `(ssid, password)` exactly as entered, after the device has connected to that network. The caller should store them (for example in its secrets file). The station connection stays active.
+
+Raises:
+- `WifiConnectError` after `max_attempts` failed connection attempts
+- `WifiProvisioningTimeout` if no connection succeeds within `timeout` seconds
+- `ValueError` if `ap_password` is not 8-63 characters
+
+Notes:
+- `ap_password=None` creates an open access point
+- The network password must be blank (open network) or 8-63 characters
+- `on_status(state)` is called with `ap_started`, `connecting`, `failed`, `success` or `timeout`
+- The password is never printed, even with `debug_mode`
+- Phones are redirected to the page automatically; otherwise browse to `http://192.168.4.1/`
 
 ### `sync_time(max_retries=5)`
 

@@ -6,6 +6,11 @@ Documentation
 - `docs/API.md` — full API reference for all library methods and usage patterns
 - `docs/GettingStarted.md` — beginner-friendly guide with Wi-Fi setup, temperature lookup, astronomy, and earthquake examples
 
+Wi-Fi setup
+-----------
+
+`Client.provision_wifi()` starts an access point with a captive-portal page where a user can enter a new Wi-Fi network name and password. It returns the verified `(ssid, password)` for the calling program to store, or raises `WifiConnectError` / `WifiProvisioningTimeout` (5 minutes by default). See `docs/GettingStarted.md` and `examples/13_wifi_provisioning.py`.
+
 Caching
 -------
 
