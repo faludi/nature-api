@@ -7,7 +7,7 @@ def on_status(state):
 
 print("Join the 'NatureAPI-Setup' network and open http://192.168.4.1/")
 try:
-    ssid, password = client.provision_wifi(on_status=on_status)
+    ssid, password = client.provision_wifi(on_status=on_status, firmware_version="1.0.0")
 except nature_api.WifiConnectError:
     print("Could not connect with the submitted credentials")
 except nature_api.WifiProvisioningTimeout:
