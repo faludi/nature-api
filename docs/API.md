@@ -62,7 +62,7 @@ client = nature_api.Client(
 
 ## 4. Connection and time helpers
 
-### `connect_wifi(attempts_per_cycle=10, max_cycles=10, provision_on_failure=False, firmware_version=None)`
+### `connect_wifi(attempts_per_cycle=10, max_cycles=10, provision_on_failure=False, firmware_version=None, instructions=...)`
 
 Connects to Wi-Fi using the provided credentials.
 
@@ -75,8 +75,9 @@ Notes:
 - `max_cycles` controls how many cycles are attempted
 - With `provision_on_failure=True`, `provision_wifi()` runs instead of resetting; its exceptions propagate
 - `firmware_version` is optionally displayed on the provisioning page when `provision_on_failure=True`
+- `instructions` is displayed above the setup form when `provision_on_failure=True`; it defaults to the standard Wi-Fi setup instructions
 
-### `provision_wifi(ap_ssid="NatureAPI-Setup", ap_password=None, timeout=300, max_attempts=1, on_status=None, firmware_version=None)`
+### `provision_wifi(ap_ssid="NatureAPI-Setup", ap_password=None, timeout=300, max_attempts=1, on_status=None, firmware_version=None, instructions=...)
 
 Starts an access point with a captive-portal setup page where the user enters a Wi-Fi network name and password.
 
@@ -93,6 +94,7 @@ Notes:
 - The network password must be blank (open network) or 8-63 characters
 - `on_status(state)` is called with `ap_started`, `connecting`, `failed`, `success` or `timeout`
 - `firmware_version` is the calling program's optional version string, shown with the device MAC and NatureAPI version
+- `instructions` is a text block displayed above the form fields; by default, it explains how to connect and what to do if setup fails
 - The password is never printed, even with `debug_mode`
 - Phones are redirected to the page automatically; otherwise browse to `http://192.168.4.1/`
 
